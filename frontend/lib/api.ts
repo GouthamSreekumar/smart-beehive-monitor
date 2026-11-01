@@ -2,15 +2,29 @@ import { SensorReading, Device, HealthResponse } from './types';
 
 /**
  * Normalized API Base URL from process.env.NEXT_PUBLIC_API_URL.
- * Supports both root domain base URLs (e.g. 'http://localhost:8000')
- * and subpath base URLs (e.g. 'https://beehive.gouthamsreekumar.dev/api').
+ * Supports:
+ * - Full URLs: 'https://beehive-backend-zau6.onrender.com'
+ * - Hostnames from Render: 'beehive-backend-zau6' or 'beehive-backend-zau6.onrender.com'
+ * - Local development: 'http://localhost:8000'
  */
 function getApiBaseUrl(): string {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-  // Strip trailing slash if present
-  const trimmed = envUrl.replace(/\/+$/, '');
+  let envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  envUrl = envUrl.trim().replace(/\/+$/, '');
+
+  // If Render passed raw hostname or slug without protocol, ensure protocol
+  if (!envUrl.startsWith('http://') && !envUrl.startsWith('https://')) {
+    if (envUrl.includes('.onrender.com')) {
+      envUrl = `https://${envUrl}`;
+    } else if (envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
+      envUrl = `http://${envUrl}`;
+    } else {
+      // It's a Render internal service name (e.g. 'beehive-backend-zau6')
+      envUrl = `https://${envUrl}.onrender.com`;
+    }
+  }
+
   // If the user provided URL ends with '/api', strip it so endpoint appending is uniform
-  return trimmed.endsWith('/api') ? trimmed.slice(0, -4) : trimmed;
+  return envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl;
 }
 
 const BASE_URL = getApiBaseUrl();

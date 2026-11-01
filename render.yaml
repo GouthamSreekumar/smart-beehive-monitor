@@ -24,11 +24,13 @@ services:
   - type: web
     name: beehive-frontend
     runtime: docker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
     plan: free
     region: oregon
     envVars:
+      - key: PORT
+        value: 3000
       - key: NEXT_PUBLIC_API_URL
         fromService:
           type: web

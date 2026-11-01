@@ -1,0 +1,146 @@
+# ==========================================
+# 1. Environment variables and secrets
+# ==========================================
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local secrets, keys, and tokens
+*.key
+*.pem
+*.cert
+*.crt
+*.pfx
+*.p12
+id_rsa
+id_ecdsa
+id_ed25519
+secrets/
+credentials.json
+client_secrets.json
+service-account*.json
+firebase-adminsdk*.json
+
+# ==========================================
+# 2. Python / FastAPI backend
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution and packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Testing and code quality caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+nosetests.xml
+coverage.xml
+*.cover
+
+# ==========================================
+# 3. Next.js / Node frontend
+# ==========================================
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+frontend/out/
+build/
+frontend/build/
+
+# Next.js build and type info
+*.tsbuildinfo
+next-env.d.ts
+
+# Package manager caches and logs
+.npm
+.yarn/cache/
+.yarn/unplugged/
+.yarn-integrity
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==========================================
+# 4. Databases, dumps, and logs
+# ==========================================
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+*.sql.tar.gz
+*.dump
+dump.rdb
+
+# ==========================================
+# 5. Docker overrides and artifacts
+# ==========================================
+docker-compose.override.yml
+docker-compose.override.yaml
+compose.override.yml
+compose.override.yaml
+
+# ==========================================
+# 6. Operating System files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# 7. IDE and editor directories
+# ==========================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace

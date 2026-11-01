@@ -32,7 +32,7 @@ const char* WIFI_PASSWORD = "12345678";
 // 2. Backend Server Endpoint
 // Replace YOUR_COMPUTER_LAN_IP with your PC's LAN IP (run 'ipconfig' in Windows PowerShell)
 // Note: Do NOT use 'localhost' or '127.0.0.1' because that refers to the ESP32 itself.
-const char* BACKEND_URL   = "http://10.117.86.134:8000/api/readings";
+const char* BACKEND_URL = "http://10.72.209.134:8000/api/readings";
 
 // 3. Device Identification
 const char* DEVICE_ID     = "beehive-001";

@@ -56,6 +56,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     container_name: beemonitor_frontend
     restart: unless-stopped
     depends_on:
@@ -76,4 +78,3 @@ networks:
 volumes:
   db_data:
     driver: local
-

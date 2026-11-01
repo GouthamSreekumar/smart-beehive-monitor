@@ -1,0 +1,48 @@
+services:
+  # -------------------------------------------------------------
+  # 1. FastAPI Backend Service (Docker)
+  # -------------------------------------------------------------
+  - type: web
+    name: beehive-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon # or frankfurt, singapore, etc.
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: beehive-db
+          property: connectionString
+      - key: PORT
+        value: 8000
+
+  # -------------------------------------------------------------
+  # 2. Next.js Frontend Dashboard (Docker)
+  # -------------------------------------------------------------
+  - type: web
+    name: beehive-frontend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    region: oregon
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: beehive-backend
+          property: host
+          # Render automatically transforms this into https://<backend-name>.onrender.com
+
+databases:
+  # -------------------------------------------------------------
+  # 3. Managed PostgreSQL 16 Database
+  # -------------------------------------------------------------
+  - name: beehive-db
+    plan: free
+    region: oregon
+    databaseName: beemonitor
+    user: postgres
+

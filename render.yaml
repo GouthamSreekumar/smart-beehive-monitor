@@ -8,7 +8,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: .
     plan: free
-    region: oregon # or frankfurt, singapore, etc.
+    region: oregon
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
@@ -34,15 +34,13 @@ services:
           type: web
           name: beehive-backend
           property: host
-          # Render automatically transforms this into https://<backend-name>.onrender.com
 
 databases:
   # -------------------------------------------------------------
-  # 3. Managed PostgreSQL 16 Database
+  # 3. Managed PostgreSQL Database
   # -------------------------------------------------------------
   - name: beehive-db
     plan: free
     region: oregon
     databaseName: beemonitor
-    user: postgres
-
+    user: beemonitor_user

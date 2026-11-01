@@ -10,7 +10,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Ensure public directory exists even if empty in git
+# Ensure public directory exists
 RUN mkdir -p /app/public
 
 # Build argument & environment variable for Next.js public client-side inlining
@@ -23,7 +23,9 @@ RUN npm run build
 # Runner stage
 FROM node:20-alpine AS runner
 WORKDIR /app
+
 ENV NODE_ENV=production \
+    HOSTNAME="0.0.0.0" \
     PORT=3000 \
     NEXT_TELEMETRY_DISABLED=1
 

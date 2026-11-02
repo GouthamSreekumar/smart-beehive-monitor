@@ -7,6 +7,7 @@ from backend.app.db.session import init_db
 from backend.app.api.endpoints.health import router as health_router
 from backend.app.api.endpoints.readings import router as readings_router
 from backend.app.api.endpoints.devices import router as devices_router
+from backend.app.api.endpoints.settings import router as settings_router
 
 # Configure structured logging
 logging.basicConfig(
@@ -40,7 +41,7 @@ app = FastAPI(
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for local IoT prototype dashboard
+    allow_origins=["*"],  # Allows all origins for local & remote IoT dashboard
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,6 +52,7 @@ app.include_router(health_router)  # Provides GET /health
 app.include_router(health_router, prefix=settings.API_V1_STR)  # Also provides GET /api/health
 app.include_router(readings_router, prefix=settings.API_V1_STR)
 app.include_router(devices_router, prefix=settings.API_V1_STR)
+app.include_router(settings_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/", tags=["Root"])
@@ -61,4 +63,3 @@ def root():
         "status": "online",
         "docs_url": "/docs",
     }
-

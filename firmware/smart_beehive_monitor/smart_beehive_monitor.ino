@@ -32,13 +32,13 @@ const char* WIFI_PASSWORD = "12345678";
 // 2. Backend Server Endpoint
 // Replace YOUR_COMPUTER_LAN_IP with your PC's LAN IP (run 'ipconfig' in Windows PowerShell)
 // Note: Do NOT use 'localhost' or '127.0.0.1' because that refers to the ESP32 itself.
-const char* BACKEND_URL = "http://10.72.209.134:8000/api/readings";
+const char* BACKEND_URL = "https://beehive-backend-zau6.onrender.com/api/readings";
 
 // 3. Device Identification
 const char* DEVICE_ID     = "beehive-001";
 
 // 4. Transmission Interval (DHT22 requires >= 2 seconds, 5000 ms to 10000 ms recommended)
-const unsigned long TRANSMISSION_INTERVAL_MS = 5000;
+const unsigned long TRANSMISSION_INTERVAL_MS = 2000;
 
 // 5. Hardware Pin & Sensor Configuration (Preserve GPIO4 and DHT22)
 #define DHTPIN 4

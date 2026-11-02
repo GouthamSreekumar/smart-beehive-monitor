@@ -1,15 +1,21 @@
-import { SensorReading, Device, HealthResponse } from './types';
+import { SensorReading, Device, HealthResponse, AlertThresholds } from './types';
 
 /**
  * Normalized API Base URL from process.env.NEXT_PUBLIC_API_URL.
  * Supports:
  * - Full URLs: 'https://beehive-backend-zau6.onrender.com'
  * - Hostnames from Render: 'beehive-backend-zau6' or 'beehive-backend-zau6.onrender.com'
+ * - Custom domain: 'https://beehive.gouthamsreekumar.dev' or '/api'
  * - Local development: 'http://localhost:8000'
  */
 function getApiBaseUrl(): string {
   let envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   envUrl = envUrl.trim().replace(/\/+$/, '');
+
+  // If running in browser and using same-origin /api path
+  if (envUrl === '/api' || envUrl === '') {
+    return '';
+  }
 
   // If Render passed raw hostname or slug without protocol, ensure protocol
   if (!envUrl.startsWith('http://') && !envUrl.startsWith('https://')) {
@@ -17,6 +23,8 @@ function getApiBaseUrl(): string {
       envUrl = `https://${envUrl}`;
     } else if (envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
       envUrl = `http://${envUrl}`;
+    } else if (envUrl.includes('.')) {
+      envUrl = `https://${envUrl}`;
     } else {
       // It's a Render internal service name (e.g. 'beehive-backend-zau6')
       envUrl = `https://${envUrl}.onrender.com`;
@@ -90,7 +98,7 @@ export async function fetchDevices(): Promise<Device[]> {
 }
 
 /**
- * Post a new sensor reading.
+ * Post a new sensor reading (ESP32 ingestion or manual test).
  * Calls POST /api/readings
  */
 export async function postReading(data: {
@@ -106,6 +114,35 @@ export async function postReading(data: {
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || `Ingestion failed (${res.status})`);
+  }
+  return res.json();
+}
+
+/**
+ * Fetch persisted alert thresholds from the backend.
+ * Calls GET /api/settings/thresholds
+ */
+export async function fetchThresholdSettings(): Promise<AlertThresholds> {
+  const res = await fetch(`${BASE_URL}/api/settings/thresholds`, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch threshold settings (${res.status})`);
+  }
+  return res.json();
+}
+
+/**
+ * Update and persist alert thresholds to the backend.
+ * Calls PUT /api/settings/thresholds
+ */
+export async function updateThresholdSettings(thresholds: AlertThresholds): Promise<AlertThresholds> {
+  const res = await fetch(`${BASE_URL}/api/settings/thresholds`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(thresholds),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to update threshold settings (${res.status})`);
   }
   return res.json();
 }

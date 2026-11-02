@@ -1,63 +1,121 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Header } from '../components/Header';
-import { SummaryCards } from '../components/SummaryCards';
-import { AlertsBanner } from '../components/AlertsBanner';
-import { ChartsSection } from '../components/ChartsSection';
-import { DeviceSelector } from '../components/DeviceSelector';
-import { ThresholdSettingsModal, DEFAULT_THRESHOLDS } from '../components/ThresholdSettingsModal';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Navbar } from '../components/Navbar';
+import { MetricOverviewCards } from '../components/MetricOverviewCards';
+import { LiveTelemetrySection } from '../components/LiveTelemetrySection';
+import { HistoricalAnalyticsSection } from '../components/HistoricalAnalyticsSection';
+import { AlertsManagementSection } from '../components/AlertsManagementSection';
+import { DeviceManagementSection } from '../components/DeviceManagementSection';
+import { SettingsSection, DEFAULT_THRESHOLDS } from '../components/SettingsSection';
 import {
   fetchHealth,
   fetchLatestReading,
   fetchReadingsHistory,
   fetchDevices,
+  fetchThresholdSettings,
+  updateThresholdSettings,
   postReading,
 } from '../lib/api';
-import { SensorReading, Device, AlertThresholds, TimeRange } from '../lib/types';
-import { Sparkles, Shield, Cpu, ExternalLink } from 'lucide-react';
+import {
+  SensorReading,
+  Device,
+  AlertThresholds,
+  TimeRange,
+  NavTab,
+  ThemeMode,
+} from '../lib/types';
+import {
+  Activity,
+  Layers,
+  Thermometer,
+  Droplets,
+  Clock,
+  Send,
+  AlertTriangle,
+  CheckCircle2,
+  ExternalLink,
+} from 'lucide-react';
 
 export default function DashboardPage() {
+  // Navigation & Theme State
+  const [currentTab, setCurrentTab] = useState<NavTab>('overview');
+  const [theme, setTheme] = useState<ThemeMode>('dark');
+
+  // Telemetry State
   const [latestReading, setLatestReading] = useState<SensorReading | null>(null);
+  const [previousReading, setPreviousReading] = useState<SensorReading | null>(null);
   const [history, setHistory] = useState<SensorReading[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [thresholds, setThresholds] = useState<AlertThresholds>(DEFAULT_THRESHOLDS);
   const [timeRange, setTimeRange] = useState<TimeRange>('1h');
 
+  // Connection & Polling State
   const [backendConnected, setBackendConnected] = useState<boolean>(true);
   const [isPolling, setIsPolling] = useState<boolean>(true);
-  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
-  const [isSimulating, setIsSimulating] = useState<boolean>(false);
-  const [simulationNotice, setSimulationNotice] = useState<string | null>(null);
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
-  const [secondsSinceLastReading, setSecondsSinceLastReading] = useState<number | null>(null);
+  const [isTestIngesting, setIsTestIngesting] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [lastSyncDate, setLastSyncDate] = useState<Date | null>(null);
+  const [secondsSinceLastPacket, setSecondsSinceLastPacket] = useState<number | null>(null);
 
+  // Keep ref of latest reading to detect changes and calculate deltas
+  const latestReadingRef = useRef<SensorReading | null>(null);
+
+  // 1. Theme Initialization & Sync
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('beehive_thresholds');
-        if (saved) setThresholds(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to parse thresholds:', e);
+      const savedTheme = localStorage.getItem('beehive_theme') as ThemeMode;
+      const initialTheme = savedTheme || 'dark';
+      setTheme(initialTheme);
+      if (initialTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
       }
     }
   }, []);
 
-  const saveThresholds = (newThresholds: AlertThresholds) => {
+  const handleToggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('beehive_theme', nextTheme);
+      if (nextTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  };
+
+  // 2. Load Persisted Thresholds from FastAPI Backend (with fallback)
+  useEffect(() => {
+    async function loadThresholds() {
+      try {
+        const backendThresholds = await fetchThresholdSettings();
+        setThresholds(backendThresholds);
+      } catch (err) {
+        console.warn('Backend settings endpoint unreachable, checking local storage:', err);
+        try {
+          const saved = localStorage.getItem('beehive_thresholds');
+          if (saved) setThresholds(JSON.parse(saved));
+        } catch {
+          // Keep defaults
+        }
+      }
+    }
+    loadThresholds();
+  }, []);
+
+  const handleThresholdsUpdated = (newThresholds: AlertThresholds) => {
     setThresholds(newThresholds);
     if (typeof window !== 'undefined') {
       localStorage.setItem('beehive_thresholds', JSON.stringify(newThresholds));
     }
   };
 
-  const resetThresholds = () => {
-    setThresholds(DEFAULT_THRESHOLDS);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('beehive_thresholds');
-    }
-  };
-
+  // Convert TimeRange to Hours query parameter
   const getHoursForTimeRange = (range: TimeRange): number => {
     switch (range) {
       case '15m': return 0.25;
@@ -68,13 +126,22 @@ export default function DashboardPage() {
     }
   };
 
+  // 3. Central Telemetry Refresh Function
   const refreshTelemetry = useCallback(async () => {
     try {
       await fetchHealth();
       setBackendConnected(true);
 
       const latest = await fetchLatestReading(selectedDeviceId || undefined);
-      setLatestReading(latest);
+      if (latest) {
+        if (latestReadingRef.current && latestReadingRef.current.id !== latest.id) {
+          setPreviousReading(latestReadingRef.current);
+        }
+        latestReadingRef.current = latest;
+        setLatestReading(latest);
+      } else {
+        setLatestReading(null);
+      }
 
       const hours = getHoursForTimeRange(timeRange);
       const hist = await fetchReadingsHistory(selectedDeviceId || undefined, hours);
@@ -83,13 +150,14 @@ export default function DashboardPage() {
       const devs = await fetchDevices();
       setDevices(devs);
 
-      setLastSyncTime(new Date());
+      setLastSyncDate(new Date());
     } catch (err) {
-      console.warn('Backend sync:', err);
+      console.warn('Telemetry sync error:', err);
       setBackendConnected(false);
     }
   }, [selectedDeviceId, timeRange]);
 
+  // 4. Polling Lifecycle with clean unmount
   useEffect(() => {
     refreshTelemetry();
     if (!isPolling) return;
@@ -97,134 +165,209 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [isPolling, refreshTelemetry]);
 
+  // 5. High-precision packet freshness timer
   useEffect(() => {
     const timer = setInterval(() => {
       if (latestReading?.timestamp) {
-        const readingDate = new Date(latestReading.timestamp).getTime();
-        const now = Date.now();
-        setSecondsSinceLastReading(Math.max(0, (now - readingDate) / 1000));
+        const lastPacketMs = new Date(latestReading.timestamp).getTime();
+        const diffSeconds = Math.max(0, (Date.now() - lastPacketMs) / 1000);
+        setSecondsSinceLastPacket(diffSeconds);
       } else {
-        setSecondsSinceLastReading(null);
+        setSecondsSinceLastPacket(null);
       }
     }, 1000);
     return () => clearInterval(timer);
   }, [latestReading]);
 
-  const isStale = (secondsSinceLastReading !== null && secondsSinceLastReading > 30 && secondsSinceLastReading <= 120);
-  const isOffline = (secondsSinceLastReading !== null && secondsSinceLastReading > 120);
-  const activeDevice = devices.find((d) => d.device_id === selectedDeviceId) || devices[0] || null;
-
-  const handleSimulateData = async () => {
-    setIsSimulating(true);
+  // 6. Test Ingestion Trigger (Hardware Pipeline Verification)
+  const handleTriggerTestIngest = async () => {
+    setIsTestIngesting(true);
     try {
-      const simTemp = parseFloat((34.2 + (Math.random() * 1.2)).toFixed(1));
-      const simHum = parseFloat((56.0 + (Math.random() * 6.0)).toFixed(1));
-      const devId = selectedDeviceId || 'beehive-001';
+      // Realistic simulated reading within optimal brood range with slight variation
+      const simulatedTemp = +(34.2 + (Math.random() * 0.8 - 0.4)).toFixed(1);
+      const simulatedHum = +(62.5 + (Math.random() * 2.0 - 1.0)).toFixed(1);
+      const deviceId = selectedDeviceId || 'beehive-001';
 
       await postReading({
-        device_id: devId,
-        temperature_c: simTemp,
-        humidity_pct: simHum,
+        device_id: deviceId,
+        temperature_c: simulatedTemp,
+        humidity_pct: simulatedHum,
       });
 
-      setSimulationNotice(`Simulated packet dispatched: ${simTemp}°C | ${simHum}% RH`);
-      setTimeout(() => setSimulationNotice(null), 5000);
+      setToastMessage(`Test packet ingested: ${simulatedTemp}°C, ${simulatedHum}% RH for ${deviceId}`);
       await refreshTelemetry();
     } catch (err: any) {
-      alert(`Simulation error: ${err.message}`);
+      setToastMessage(`Test ingest failed: ${err.message}`);
     } finally {
-      setIsSimulating(false);
+      setIsTestIngesting(false);
+      setTimeout(() => setToastMessage(null), 4000);
     }
   };
 
+  // Active Alert Counter
+  const activeAlertCount = React.useMemo(() => {
+    let count = 0;
+    if (!backendConnected) count++;
+    if (secondsSinceLastPacket !== null && secondsSinceLastPacket > 120) count++;
+    if (latestReading) {
+      if (latestReading.temperature_c < thresholds.minTemp || latestReading.temperature_c > thresholds.maxTemp) count++;
+      if (latestReading.humidity_pct < thresholds.minHumidity || latestReading.humidity_pct > thresholds.maxHumidity) count++;
+    }
+    return count;
+  }, [backendConnected, secondsSinceLastPacket, latestReading, thresholds]);
+
+  const activeDevice = devices.find((d) => d.device_id === selectedDeviceId) || null;
+
   return (
-    <div className="min-h-screen flex flex-col honeycomb-bg text-[#1c1917] selection:bg-amber-100 selection:text-amber-900">
+    <div className="min-h-screen flex flex-col bg-industrial-950 text-industrial-300 dark:bg-industrial-950 dark:text-industrial-300 industrial-grid">
       
-      {/* Sticky Top Navbar */}
-      <Header
+      {/* 1. Industrial Header & Navigation */}
+      <Navbar
+        currentTab={currentTab}
+        onSelectTab={setCurrentTab}
+        devices={devices}
+        selectedDeviceId={selectedDeviceId}
+        onSelectDevice={setSelectedDeviceId}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
         backendConnected={backendConnected}
         isPolling={isPolling}
-        togglePolling={() => setIsPolling(!isPolling)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        onSimulateData={handleSimulateData}
-        isSimulating={isSimulating}
-        lastSyncTime={lastSyncTime}
+        onTogglePolling={() => setIsPolling(!isPolling)}
+        onTriggerTestIngest={handleTriggerTestIngest}
+        isTestIngesting={isTestIngesting}
+        activeAlertCount={activeAlertCount}
+        lastSyncSecondsAgo={
+          lastSyncDate ? Math.floor((Date.now() - lastSyncDate.getTime()) / 1000) : null
+        }
       />
 
-      {/* Main Interactive Workspace */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 space-y-5">
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 space-y-5">
         
-        {/* Simulation Feedback Alert */}
-        {simulationNotice && (
-          <div className="animate-in fade-in slide-in-from-top-2 duration-200 bg-amber-50 border border-amber-300 rounded-xl p-3 flex items-center justify-between text-xs text-amber-900 shadow-sm">
+        {/* Toast Feedback Notification */}
+        {toastMessage && (
+          <div className="p-3 rounded-lg bg-honey-500/10 border border-honey-500/40 text-honey-300 text-xs font-mono flex items-center justify-between shadow-glow-amber animate-in fade-in duration-200">
             <div className="flex items-center space-x-2">
-              <Sparkles className="w-4 h-4 text-amber-600 animate-spin" />
-              <span className="font-semibold">{simulationNotice}</span>
+              <CheckCircle2 className="w-4 h-4 text-honey-400 flex-shrink-0" />
+              <span>{toastMessage}</span>
             </div>
-            <button onClick={() => setSimulationNotice(null)} className="font-bold text-amber-700 hover:text-amber-900">
-              Dismiss
+            <button onClick={() => setToastMessage(null)} className="text-honey-400 hover:text-white font-bold ml-2">
+              ✕
             </button>
           </div>
         )}
 
-        {/* Multi-hive Selector */}
-        <DeviceSelector
-          devices={devices}
-          selectedDeviceId={selectedDeviceId}
-          onSelectDevice={setSelectedDeviceId}
-        />
+        {/* Tab View 1: Overview / Key Metrics Dashboard */}
+        {currentTab === 'overview' && (
+          <div className="space-y-5">
+            {/* 6 Key Metric Industrial Cards */}
+            <MetricOverviewCards
+              latestReading={latestReading}
+              previousReading={previousReading}
+              history={history}
+              activeDevice={activeDevice}
+              thresholds={thresholds}
+              backendConnected={backendConnected}
+              secondsSinceLastPacket={secondsSinceLastPacket}
+              activeAlertCount={activeAlertCount}
+            />
 
-        {/* 4 Rich Metric Glass Cards */}
-        <SummaryCards
-          latestReading={latestReading}
-          activeDevice={activeDevice}
-          thresholds={thresholds}
-          isStale={isStale}
-          isOffline={isOffline}
-          secondsSinceLastReading={secondsSinceLastReading}
-        />
+            {/* Live Stream Section */}
+            <LiveTelemetrySection
+              latestReading={latestReading}
+              history={history}
+              thresholds={thresholds}
+              backendConnected={backendConnected}
+              secondsSinceLastReading={secondsSinceLastPacket}
+              isPolling={isPolling}
+              theme={theme}
+              onRefresh={refreshTelemetry}
+            />
 
-        {/* Anomaly Alerts Banner */}
-        <AlertsBanner
-          latestReading={latestReading}
-          thresholds={thresholds}
-          isStale={isStale}
-          isOffline={isOffline}
-          secondsSinceLastReading={secondsSinceLastReading}
-        />
+            {/* Quick Historical Snapshot Section */}
+            <HistoricalAnalyticsSection
+              history={history}
+              thresholds={thresholds}
+              timeRange={timeRange}
+              onSelectTimeRange={setTimeRange}
+              theme={theme}
+            />
+          </div>
+        )}
 
-        {/* Interactive ECharts Visualizer */}
-        <ChartsSection
-          history={history}
-          thresholds={thresholds}
-          timeRange={timeRange}
-          setTimeRange={setTimeRange}
-          isLoading={false}
-        />
+        {/* Tab View 2: Dedicated Live Telemetry Stream */}
+        {currentTab === 'live' && (
+          <LiveTelemetrySection
+            latestReading={latestReading}
+            history={history}
+            thresholds={thresholds}
+            backendConnected={backendConnected}
+            secondsSinceLastReading={secondsSinceLastPacket}
+            isPolling={isPolling}
+            theme={theme}
+            onRefresh={refreshTelemetry}
+          />
+        )}
+
+        {/* Tab View 3: Dedicated Historical Analytics */}
+        {currentTab === 'analytics' && (
+          <HistoricalAnalyticsSection
+            history={history}
+            thresholds={thresholds}
+            timeRange={timeRange}
+            onSelectTimeRange={setTimeRange}
+            theme={theme}
+          />
+        )}
+
+        {/* Tab View 4: Alerts and Anomaly Monitoring */}
+        {currentTab === 'alerts' && (
+          <AlertsManagementSection
+            latestReading={latestReading}
+            thresholds={thresholds}
+            backendConnected={backendConnected}
+            secondsSinceLastReading={secondsSinceLastPacket}
+          />
+        )}
+
+        {/* Tab View 5: Device Management */}
+        {currentTab === 'devices' && (
+          <DeviceManagementSection
+            devices={devices}
+            selectedDeviceId={selectedDeviceId}
+            onSelectDevice={setSelectedDeviceId}
+            latestReading={latestReading}
+            secondsSinceLastPacket={secondsSinceLastPacket}
+            backendConnected={backendConnected}
+          />
+        )}
+
+        {/* Tab View 6: Threshold Configuration Settings */}
+        {currentTab === 'settings' && (
+          <SettingsSection
+            currentThresholds={thresholds}
+            onThresholdsUpdated={handleThresholdsUpdated}
+          />
+        )}
 
       </main>
 
-      {/* Threshold Modal */}
-      <ThresholdSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        currentThresholds={thresholds}
-        onSave={saveThresholds}
-        onReset={resetThresholds}
-      />
-
-      {/* Polish Footer */}
-      <footer className="border-t border-[#eadeca]/80 py-5 bg-white/70 backdrop-blur-xs mt-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-500 gap-2">
+      {/* Industrial Footer */}
+      <footer className="border-t border-industrial-800 bg-industrial-950 py-4 text-center text-xs text-industrial-500 font-mono transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center space-x-2">
-            <span className="font-semibold text-stone-700">Smart Beehive Monitor</span>
-            <span>•</span>
-            <span>ESP32 (GPIO 4) + DHT22 Microclimate Sensing</span>
+            <span className="w-2 h-2 rounded-full bg-honey-500/80" />
+            <span>Smart Beehive Monitor v2.4</span>
+            <span>·</span>
+            <span>ESP32 + DHT22 Microclimate Sensing</span>
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="font-mono text-[11px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-              Target: 32.0–36.0°C | 50–70% RH
-            </span>
+
+          <div className="flex items-center space-x-3 text-industrial-400">
+            <span>FastAPI Backend</span>
+            <span>·</span>
+            <span>PostgreSQL Database</span>
+            <span>·</span>
+            <span>Next.js 14 Dashboard</span>
           </div>
         </div>
       </footer>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Activity, Settings, RefreshCw, Radio, PlayCircle, AlertCircle } from 'lucide-react';
+import { SlidersHorizontal, Play, Pause } from 'lucide-react';
 
 interface HeaderProps {
   backendConnected: boolean;
@@ -20,85 +20,73 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSettings,
   onSimulateData,
   isSimulating,
-  lastSyncTime,
 }) => {
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand */}
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-md shadow-amber-200">
-            <span className="text-xl">🐝</span>
+    <header className="border-b border-[#ecece8] bg-[#fbfbfa]/80 backdrop-blur-md sticky top-0 z-30 transition-all">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        
+        {/* Brand identity: Clean, artisanal & understated */}
+        <div className="flex items-center space-x-3.5">
+          <div className="w-8 h-8 rounded-lg bg-[#f4efe4] border border-[#e5dcce] flex items-center justify-center text-[#946a2f]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2l8 4.5v11L12 22l-8-4.5v-11L12 2z"/>
+              <path d="M12 12l8-4.5"/>
+              <path d="M12 12v10"/>
+              <path d="M12 12L4 7.5"/>
+            </svg>
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h1 className="text-lg font-bold text-slate-900 tracking-tight">Smart Beehive Monitor</h1>
-              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 border border-amber-200">
-                ESP32 + DHT22
-              </span>
+              <span className="font-semibold text-sm tracking-tight text-[#1c1d1a]">Beehive Telemetry</span>
+              <span className="text-[11px] font-mono text-[#8c887b] tracking-normal">v1.0</span>
             </div>
-            <p className="text-xs text-slate-500">Real-time Brood Nest Telemetry & Anomaly Alerts</p>
+            <p className="text-[11px] text-[#78756c]">Apis mellifera brood nest microclimate</p>
           </div>
         </div>
 
-        {/* Status and Controls */}
-        <div className="flex items-center space-x-3">
-          {/* Backend Health Badge */}
-          <div
-            className={`hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-              backendConnected
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-rose-50 text-rose-700 border-rose-200'
-            }`}
-          >
+        {/* Action Controls */}
+        <div className="flex items-center space-x-2 sm:space-x-2.5">
+          {/* Connection status pill */}
+          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border border-[#e5e5e0] bg-white text-[#4a4944]">
             <span
-              className={`w-2 h-2 rounded-full ${
-                backendConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+              className={`w-1.5 h-1.5 rounded-full ${
+                backendConnected ? 'bg-emerald-600' : 'bg-rose-500 animate-pulse'
               }`}
             />
-            <span>{backendConnected ? 'API Connected' : 'API Unreachable'}</span>
+            <span>{backendConnected ? 'Connected' : 'Offline'}</span>
           </div>
 
-          {/* Polling Toggle */}
+          {/* Polling toggle */}
           <button
             onClick={togglePolling}
-            title={isPolling ? 'Live auto-refresh enabled (3s)' : 'Auto-refresh paused'}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-              isPolling
-                ? 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-            }`}
+            title={isPolling ? 'Auto-refresh active (3s)' : 'Stream paused'}
+            className="flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-[#e5e5e0] bg-white text-[#4a4944] hover:bg-[#f6f6f2] transition-colors"
           >
-            <Radio className={`w-3.5 h-3.5 ${isPolling ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
-            <span className="hidden md:inline">{isPolling ? 'Live 3s' : 'Paused'}</span>
+            {isPolling ? <Pause className="w-3 h-3 text-[#78756c]" /> : <Play className="w-3 h-3 text-emerald-600" />}
+            <span className="hidden sm:inline">{isPolling ? 'Live 3s' : 'Paused'}</span>
           </button>
 
-          {/* Demo Simulator Button */}
+          {/* Demo simulate button */}
           <button
             onClick={onSimulateData}
             disabled={isSimulating}
-            className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-              isSimulating
-                ? 'bg-amber-100 text-amber-900 border-amber-300 opacity-75'
-                : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 hover:shadow-sm'
-            }`}
-            title="Inject a test reading to test dashboard without hardware"
+            className="px-2.5 py-1 rounded-md text-[11px] font-medium border border-[#ded9cc] bg-[#fbf8f0] text-[#7c5a24] hover:bg-[#f4efe0] transition-colors"
+            title="Inject test telemetry point"
           >
-            <PlayCircle className="w-3.5 h-3.5 text-amber-600" />
-            <span className="hidden md:inline">Demo Ingest</span>
+            {isSimulating ? 'Sending...' : 'Test Reading'}
           </button>
 
-          {/* Threshold Settings Modal Trigger */}
+          {/* Thresholds settings */}
           <button
             onClick={onOpenSettings}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white hover:bg-slate-800 transition-colors shadow-sm"
+            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-[#1c1d1a] text-white hover:bg-[#2d2e2a] transition-colors"
           >
-            <Settings className="w-3.5 h-3.5" />
-            <span>Thresholds</span>
+            <SlidersHorizontal className="w-3 h-3" />
+            <span className="hidden sm:inline">Thresholds</span>
           </button>
         </div>
+
       </div>
     </header>
   );
 };
-

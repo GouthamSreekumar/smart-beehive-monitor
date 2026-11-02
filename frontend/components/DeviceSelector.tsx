@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Box, Layers } from 'lucide-react';
 import { Device } from '../lib/types';
 
 interface DeviceSelectorProps {
@@ -16,52 +15,41 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
   onSelectDevice,
 }) => {
   if (devices.length <= 1) {
-    return null; // No need for switcher if only single hive
+    return null;
   }
 
   return (
-    <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-      <div className="flex items-center space-x-2">
-        <Layers className="w-4 h-4 text-slate-500" />
-        <span className="text-xs font-semibold text-slate-700">Monitored Hives:</span>
-      </div>
+    <div className="flex items-center space-x-1 border-b border-[#ecece8] pb-2 text-xs">
+      <span className="text-[#8c887b] mr-2">Hives:</span>
+      <button
+        onClick={() => onSelectDevice('')}
+        className={`px-2.5 py-1 rounded text-xs transition-colors ${
+          selectedDeviceId === ''
+            ? 'bg-[#1c1d1a] text-white font-medium'
+            : 'text-[#68655c] hover:bg-[#f1f1ec]'
+        }`}
+      >
+        All Hives
+      </button>
 
-      <div className="flex items-center space-x-1.5 overflow-x-auto">
+      {devices.map((d) => (
         <button
-          onClick={() => onSelectDevice('')}
-          className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-            selectedDeviceId === ''
-              ? 'bg-amber-500 text-white shadow-sm'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          key={d.device_id}
+          onClick={() => onSelectDevice(d.device_id)}
+          className={`flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs transition-colors ${
+            selectedDeviceId === d.device_id
+              ? 'bg-[#1c1d1a] text-white font-medium'
+              : 'text-[#68655c] hover:bg-[#f1f1ec]'
           }`}
         >
-          All Hives
-        </button>
-
-        {devices.map((d) => (
-          <button
-            key={d.device_id}
-            onClick={() => onSelectDevice(d.device_id)}
-            className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition ${
-              selectedDeviceId === d.device_id
-                ? 'bg-amber-500 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          <span>{d.device_id}</span>
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              d.status === 'online' ? 'bg-emerald-600' : 'bg-amber-500'
             }`}
-          >
-            <span>{d.device_id}</span>
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                d.status === 'online'
-                  ? 'bg-emerald-500'
-                  : d.status === 'stale'
-                  ? 'bg-amber-500'
-                  : 'bg-slate-400'
-              }`}
-            />
-          </button>
-        ))}
-      </div>
+          />
+        </button>
+      ))}
     </div>
   );
 };
-

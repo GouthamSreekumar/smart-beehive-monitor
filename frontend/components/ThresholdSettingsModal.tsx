@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Sliders, Info, RotateCcw, Check } from 'lucide-react';
+import { X } from 'lucide-react';
 import { AlertThresholds } from '../lib/types';
 
 interface ThresholdSettingsModalProps {
@@ -53,145 +53,114 @@ export const ThresholdSettingsModal: React.FC<ThresholdSettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
-        {/* Modal Header */}
-        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-sm">
-              <Sliders className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Alert Threshold Configuration</h3>
-              <p className="text-xs text-slate-500">Fine-tune microclimate anomaly detection</p>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-in fade-in duration-100">
+      <div className="bg-white rounded-lg max-w-md w-full border border-[#e5e5e0] shadow-xl overflow-hidden">
+        
+        {/* Header */}
+        <div className="px-5 py-3.5 border-b border-[#ecece8] flex items-center justify-between bg-[#fafaf8]">
+          <div>
+            <h3 className="text-sm font-semibold text-[#1c1d1a]">Target Threshold Limits</h3>
+            <p className="text-[11px] text-[#78756c]">Brood nest physiological parameters</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition"
+            className="p-1 rounded text-[#8c887b] hover:text-[#1c1d1a] hover:bg-[#f1f1ec] transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Beekeeping Scientific Guidance Callout */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start space-x-3 text-xs text-amber-900">
-            <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="leading-relaxed">
-              <span className="font-bold">Beekeeping Note:</span> A healthy honey bee (<i>Apis mellifera</i>)
-              brood nest is tightly thermoregulated between <b>32.0°C and 36.0°C</b> (optimum ~34.5°C) and
-              <b> 50% to 70% RH</b>. Sub-brood zones or honey supers experience wider ambient swings.
-              Adjust these limits according to sensor placement and local seasonal targets.
-            </div>
-          </div>
+        {/* Inputs Form */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <p className="text-xs text-[#78756c] leading-relaxed">
+            Healthy <i>Apis mellifera</i> brood is actively maintained between 32.0°C and 36.0°C.
+            Deviations outside these ranges trigger automatic warning indicators.
+          </p>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Temperature Min */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#4a4944] mb-1">
                 Min Temperature (°C)
               </label>
               <input
                 type="number"
                 step="0.5"
-                min="0"
-                max="50"
                 value={minTemp}
                 onChange={(e) => setMinTemp(parseFloat(e.target.value))}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                className="w-full px-2.5 py-1.5 text-xs font-mono border border-[#deded8] rounded bg-[#fdfdfb] focus:border-[#1c1d1a] focus:outline-none"
                 required
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">Default: 32.0°C (Chilling alert)</span>
             </div>
-
-            {/* Temperature Max */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#4a4944] mb-1">
                 Max Temperature (°C)
               </label>
               <input
                 type="number"
                 step="0.5"
-                min="0"
-                max="50"
                 value={maxTemp}
                 onChange={(e) => setMaxTemp(parseFloat(e.target.value))}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                className="w-full px-2.5 py-1.5 text-xs font-mono border border-[#deded8] rounded bg-[#fdfdfb] focus:border-[#1c1d1a] focus:outline-none"
                 required
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">Default: 36.0°C (Overheating alert)</span>
             </div>
-
-            {/* Humidity Min */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#4a4944] mb-1">
                 Min Humidity (% RH)
               </label>
               <input
                 type="number"
                 step="1"
-                min="10"
-                max="100"
                 value={minHumidity}
                 onChange={(e) => setMinHumidity(parseFloat(e.target.value))}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                className="w-full px-2.5 py-1.5 text-xs font-mono border border-[#deded8] rounded bg-[#fdfdfb] focus:border-[#1c1d1a] focus:outline-none"
                 required
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">Default: 50.0% (Dry brood alert)</span>
             </div>
-
-            {/* Humidity Max */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#4a4944] mb-1">
                 Max Humidity (% RH)
               </label>
               <input
                 type="number"
                 step="1"
-                min="10"
-                max="100"
                 value={maxHumidity}
                 onChange={(e) => setMaxHumidity(parseFloat(e.target.value))}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                className="w-full px-2.5 py-1.5 text-xs font-mono border border-[#deded8] rounded bg-[#fdfdfb] focus:border-[#1c1d1a] focus:outline-none"
                 required
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">Default: 70.0% (Mold/condensation)</span>
             </div>
           </div>
 
-          {/* Modal Actions */}
-          <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
+          {/* Action buttons */}
+          <div className="pt-3 border-t border-[#ecece8] flex items-center justify-between">
             <button
               type="button"
               onClick={handleReset}
-              className="flex items-center space-x-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-2 rounded-lg hover:bg-slate-100 transition"
+              className="text-xs text-[#78756c] hover:text-[#1c1d1a] underline underline-offset-2"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Defaults</span>
+              Reset to Defaults
             </button>
-
             <div className="flex items-center space-x-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition"
+                className="px-3 py-1.5 text-xs font-medium text-[#4a4944] hover:bg-[#f4f4f0] rounded"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex items-center space-x-1.5 px-4 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-sm transition"
+                className="px-3 py-1.5 text-xs font-medium bg-[#1c1d1a] text-white rounded hover:bg-[#2e2f2b]"
               >
-                <Check className="w-3.5 h-3.5" />
-                <span>Save Thresholds</span>
+                Apply Limits
               </button>
             </div>
           </div>
+
         </form>
+
       </div>
     </div>
   );
 };
-

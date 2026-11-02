@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Device } from '../lib/types';
+import { Layers } from 'lucide-react';
 
 interface DeviceSelectorProps {
   devices: Device[];
@@ -19,33 +20,37 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
   }
 
   return (
-    <div className="flex items-center space-x-1 border-b border-[#ecece8] pb-2 text-xs">
-      <span className="text-[#8c887b] mr-2">Hives:</span>
+    <div className="flex items-center space-x-2 py-1 text-xs">
+      <div className="flex items-center space-x-1.5 text-stone-500 font-medium">
+        <Layers className="w-3.5 h-3.5" />
+        <span>Monitored Hives:</span>
+      </div>
+
       <button
         onClick={() => onSelectDevice('')}
-        className={`px-2.5 py-1 rounded text-xs transition-colors ${
+        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
           selectedDeviceId === ''
-            ? 'bg-[#1c1d1a] text-white font-medium'
-            : 'text-[#68655c] hover:bg-[#f1f1ec]'
+            ? 'bg-amber-600 text-white shadow-xs'
+            : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'
         }`}
       >
-        All Hives
+        All Colonies
       </button>
 
       {devices.map((d) => (
         <button
           key={d.device_id}
           onClick={() => onSelectDevice(d.device_id)}
-          className={`flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs transition-colors ${
+          className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
             selectedDeviceId === d.device_id
-              ? 'bg-[#1c1d1a] text-white font-medium'
-              : 'text-[#68655c] hover:bg-[#f1f1ec]'
+              ? 'bg-amber-600 text-white shadow-xs'
+              : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'
           }`}
         >
           <span>{d.device_id}</span>
           <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              d.status === 'online' ? 'bg-emerald-600' : 'bg-amber-500'
+            className={`w-2 h-2 rounded-full ${
+              d.status === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
             }`}
           />
         </button>

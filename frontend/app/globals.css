@@ -3,32 +3,88 @@
 @tailwind utilities;
 
 :root {
-  --background: #fbfbfa; /* Warm paper / linen off-white */
+  --background: #fdfbf7;
   --foreground: #1c1d1a;
-  --surface: #ffffff;
-  --border: #eaebed;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  letter-spacing: -0.011em;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle, refined scrollbar */
+/* Subtle honeycomb pattern in the background */
+.honeycomb-bg {
+  background-color: #fdfcf9;
+  background-image: 
+    radial-gradient(#eedcb8 0.75px, transparent 0.75px),
+    radial-gradient(#eedcb8 0.75px, #fdfcf9 0.75px);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+/* Custom keyframe animations */
+@keyframes beeHover {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(2deg);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-bee-hover {
+  animation: beeHover 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* Glassmorphism cards with soft border reflection */
+.glass-card {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(230, 222, 206, 0.75);
+  box-shadow: 0 4px 20px -2px rgba(180, 140, 70, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(212, 169, 90, 0.6);
+  box-shadow: 0 10px 25px -4px rgba(180, 140, 70, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+}
+
+/* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: #d6ccba;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #bfae95;
 }

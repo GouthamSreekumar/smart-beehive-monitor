@@ -15,6 +15,7 @@ import {
   postReading,
 } from '../lib/api';
 import { SensorReading, Device, AlertThresholds, TimeRange } from '../lib/types';
+import { Sparkles, Shield, Cpu, ExternalLink } from 'lucide-react';
 
 export default function DashboardPage() {
   const [latestReading, setLatestReading] = useState<SensorReading | null>(null);
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const [isPolling, setIsPolling] = useState<boolean>(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [simulationNotice, setSimulationNotice] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [secondsSinceLastReading, setSecondsSinceLastReading] = useState<number | null>(null);
 
@@ -124,6 +126,9 @@ export default function DashboardPage() {
         temperature_c: simTemp,
         humidity_pct: simHum,
       });
+
+      setSimulationNotice(`Simulated packet dispatched: ${simTemp}°C | ${simHum}% RH`);
+      setTimeout(() => setSimulationNotice(null), 5000);
       await refreshTelemetry();
     } catch (err: any) {
       alert(`Simulation error: ${err.message}`);
@@ -133,8 +138,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#fbfbfa] text-[#1c1d1a]">
-      {/* Editorial Navbar */}
+    <div className="min-h-screen flex flex-col honeycomb-bg text-[#1c1917] selection:bg-amber-100 selection:text-amber-900">
+      
+      {/* Sticky Top Navbar */}
       <Header
         backendConnected={backendConnected}
         isPolling={isPolling}
@@ -145,17 +151,30 @@ export default function DashboardPage() {
         lastSyncTime={lastSyncTime}
       />
 
-      {/* Main Content Workspace */}
+      {/* Main Interactive Workspace */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 space-y-5">
         
-        {/* Device selector if multiple hives */}
+        {/* Simulation Feedback Alert */}
+        {simulationNotice && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-200 bg-amber-50 border border-amber-300 rounded-xl p-3 flex items-center justify-between text-xs text-amber-900 shadow-sm">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-amber-600 animate-spin" />
+              <span className="font-semibold">{simulationNotice}</span>
+            </div>
+            <button onClick={() => setSimulationNotice(null)} className="font-bold text-amber-700 hover:text-amber-900">
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Multi-hive Selector */}
         <DeviceSelector
           devices={devices}
           selectedDeviceId={selectedDeviceId}
           onSelectDevice={setSelectedDeviceId}
         />
 
-        {/* 4 Clean Metric Cards */}
+        {/* 4 Rich Metric Glass Cards */}
         <SummaryCards
           latestReading={latestReading}
           activeDevice={activeDevice}
@@ -165,7 +184,7 @@ export default function DashboardPage() {
           secondsSinceLastReading={secondsSinceLastReading}
         />
 
-        {/* Alerts / Condition Status */}
+        {/* Anomaly Alerts Banner */}
         <AlertsBanner
           latestReading={latestReading}
           thresholds={thresholds}
@@ -174,7 +193,7 @@ export default function DashboardPage() {
           secondsSinceLastReading={secondsSinceLastReading}
         />
 
-        {/* ECharts Visualizers */}
+        {/* Interactive ECharts Visualizer */}
         <ChartsSection
           history={history}
           thresholds={thresholds}
@@ -185,7 +204,7 @@ export default function DashboardPage() {
 
       </main>
 
-      {/* Modal */}
+      {/* Threshold Modal */}
       <ThresholdSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -194,13 +213,22 @@ export default function DashboardPage() {
         onReset={resetThresholds}
       />
 
-      {/* Subtle, understated footer */}
-      <footer className="border-t border-[#ecece8] py-4 bg-[#fbfbfa]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#9c9990] gap-2">
-          <span>ESP32 + DHT22 Brood Telemetry System</span>
-          <span>Target Brood Nest: 32.0–36.0°C | 50–70% RH</span>
+      {/* Polish Footer */}
+      <footer className="border-t border-[#eadeca]/80 py-5 bg-white/70 backdrop-blur-xs mt-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-500 gap-2">
+          <div className="flex items-center space-x-2">
+            <span className="font-semibold text-stone-700">Smart Beehive Monitor</span>
+            <span>•</span>
+            <span>ESP32 (GPIO 4) + DHT22 Microclimate Sensing</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="font-mono text-[11px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+              Target: 32.0–36.0°C | 50–70% RH
+            </span>
+          </div>
         </div>
       </footer>
+
     </div>
   );
 }

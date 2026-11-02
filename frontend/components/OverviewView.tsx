@@ -11,9 +11,12 @@ import {
   CheckCircle2,
   TrendingUp,
   TrendingDown,
-  Minus,
   ArrowRight,
   Clock,
+  Activity,
+  ShieldCheck,
+  ChevronRight,
+  Zap,
 } from 'lucide-react';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
@@ -29,6 +32,42 @@ interface OverviewViewProps {
   activeAlertCount: number;
   onNavigateToTab: (tab: NavTab) => void;
 }
+
+// Crisp inline SVG Sparkline generator
+const Sparkline: React.FC<{ data: number[]; color: string; height?: number }> = ({
+  data,
+  color,
+  height = 24,
+}) => {
+  if (data.length < 2) return null;
+
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const width = 64;
+  const padding = 2;
+
+  const points = data
+    .map((val, idx) => {
+      const x = padding + (idx / (data.length - 1)) * (width - 2 * padding);
+      const y = height - padding - ((val - min) / range) * (height - 2 * padding);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
+  );
+};
 
 export const OverviewView: React.FC<OverviewViewProps> = ({
   latestReading,
@@ -46,33 +85,27 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
   // Temperature status
   let tempStatus: 'normal' | 'warning' | 'critical' = 'normal';
-  let tempLabel = 'Normal incubation range';
+  let tempLabel = 'Optimal brood temperature';
   if (temp !== null) {
     if (temp < thresholds.minTemp) {
       tempStatus = 'critical';
-      tempLabel = `Below safe minimum (${thresholds.minTemp}°C)`;
+      tempLabel = `Low (below ${thresholds.minTemp}°C)`;
     } else if (temp > thresholds.maxTemp) {
       tempStatus = 'critical';
-      tempLabel = `Above safe maximum (${thresholds.maxTemp}°C)`;
-    } else {
-      tempStatus = 'normal';
-      tempLabel = 'Optimal brood temperature';
+      tempLabel = `High (above ${thresholds.maxTemp}°C)`;
     }
   }
 
   // Humidity status
   let humStatus: 'normal' | 'warning' | 'critical' = 'normal';
-  let humLabel = 'Normal humidity level';
+  let humLabel = 'Optimal relative humidity';
   if (humidity !== null) {
     if (humidity < thresholds.minHumidity) {
       humStatus = 'warning';
-      humLabel = `Below target (${thresholds.minHumidity}%)`;
+      humLabel = `Dry (below ${thresholds.minHumidity}%)`;
     } else if (humidity > thresholds.maxHumidity) {
       humStatus = 'critical';
-      humLabel = `Excess moisture (${thresholds.maxHumidity}%)`;
-    } else {
-      humStatus = 'normal';
-      humLabel = 'Optimal relative humidity';
+      humLabel = `Moist (above ${thresholds.maxHumidity}%)`;
     }
   }
 
@@ -80,19 +113,19 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   const isOnline = backendConnected && secondsSinceLastPacket !== null && secondsSinceLastPacket <= 120 && latestReading !== null;
   const isDelayed = backendConnected && secondsSinceLastPacket !== null && secondsSinceLastPacket > 30 && secondsSinceLastPacket <= 120;
 
-  // Plain-English hive condition interpretation based on genuine readings
-  let conditionText = 'No sensor readings have been received yet.';
+  // Plain-English hive condition interpretation
+  let conditionText = 'Awaiting initial telemetry stream from ESP32.';
   if (latestReading) {
     if (tempStatus === 'normal' && humStatus === 'normal') {
-      conditionText = 'Brood nest microclimate is healthy and within optimal biological ranges for incubation.';
+      conditionText = 'Brood microclimate is healthy and within optimal biological ranges for incubation.';
     } else if (tempStatus === 'critical' && temp! < thresholds.minTemp) {
-      conditionText = `Temperature is low (${temp!.toFixed(1)}°C). Risk of chilled brood; inspect hive insulation and drafts.`;
+      conditionText = `Temperature is low (${temp!.toFixed(1)}°C). Risk of chilled brood; inspect hive insulation.`;
     } else if (tempStatus === 'critical' && temp! > thresholds.maxTemp) {
-      conditionText = `Temperature is high (${temp!.toFixed(1)}°C). Bees may be fanning wings to ventilate; check shading.`;
+      conditionText = `Temperature is high (${temp!.toFixed(1)}°C). Bees may be fanning wings; check hive shading.`;
     } else if (humStatus === 'critical') {
-      conditionText = `Humidity is elevated (${humidity!.toFixed(1)}%). Excess moisture favors mold; check upper ventilation.`;
+      conditionText = `Humidity is elevated (${humidity!.toFixed(1)}%). Excess moisture favors chalkbrood; check ventilation.`;
     } else {
-      conditionText = `Humidity is low (${humidity!.toFixed(1)}%). Ensure water sources are accessible near the apiary.`;
+      conditionText = `Humidity is low (${humidity!.toFixed(1)}%). Ensure water sources are accessible near apiary.`;
     }
   }
 
@@ -100,7 +133,64 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   const tempDelta = (temp !== null && previousReading !== null) ? temp - previousReading.temperature_c : null;
   const humDelta = (humidity !== null && previousReading !== null) ? humidity - previousReading.humidity_pct : null;
 
-  // Overview 24h/recent trend chart options
+  // Slices for sparklines
+  const tempSparkSlice = useMemo(() => history.slice(-12).map((r) => r.temperature_c), [history]);
+  const humSparkSlice = useMemo(() => history.slice(-12).map((r) => r.humidity_pct), [history]);
+
+  // Derived Activity Timeline events (strictly from real available data)
+  const recentEvents = useMemo(() => {
+    const events: { id: string; title: string; desc: string; time: string; type: 'success' | 'warning' | 'info' }[] = [];
+
+    if (latestReading) {
+      events.push({
+        id: 'latest-packet',
+        title: 'Sensor telemetry packet received',
+        desc: `Recorded ${latestReading.temperature_c.toFixed(1)}°C and ${latestReading.humidity_pct.toFixed(1)}% RH from ${latestReading.device_id}`,
+        time: new Date(latestReading.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        type: 'success',
+      });
+    }
+
+    if (isOnline) {
+      events.push({
+        id: 'conn-active',
+        title: 'ESP32 transmitter online',
+        desc: `HTTP telemetry stream active on Wi-Fi link (3s cadence)`,
+        time: latestReading ? new Date(latestReading.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
+        type: 'success',
+      });
+    } else if (secondsSinceLastPacket !== null && secondsSinceLastPacket > 120) {
+      events.push({
+        id: 'conn-offline',
+        title: 'ESP32 transmitter disconnected',
+        desc: `No sensor packets received for ${Math.round(secondsSinceLastPacket)} seconds`,
+        time: latestReading ? new Date(latestReading.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Active',
+        type: 'warning',
+      });
+    }
+
+    if (tempStatus === 'normal' && humStatus === 'normal' && latestReading) {
+      events.push({
+        id: 'status-optimal',
+        title: 'Brood chamber equilibrium verified',
+        desc: `All metrics are within safe biological boundaries (${thresholds.minTemp}–${thresholds.maxTemp}°C)`,
+        time: 'Nominal',
+        type: 'info',
+      });
+    } else if (tempStatus === 'critical' && latestReading) {
+      events.push({
+        id: 'temp-alert',
+        title: 'Temperature boundary alert triggered',
+        desc: `Reading of ${latestReading.temperature_c.toFixed(1)}°C breached target range (${thresholds.minTemp}–${thresholds.maxTemp}°C)`,
+        time: new Date(latestReading.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: 'warning',
+      });
+    }
+
+    return events;
+  }, [latestReading, isOnline, secondsSinceLastPacket, tempStatus, humStatus, thresholds]);
+
+  // Overview trend chart
   const timestamps = useMemo(() => {
     return history.map((r) => {
       const d = new Date(r.timestamp);
@@ -212,38 +302,43 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   }), [timestamps, temperatures, humidities, thresholds]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-tab-enter">
       
-      {/* 4 Essential Metric Cards */}
+      {/* 4 Interactive Clickable Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         
         {/* 1. Hive Temperature */}
-        <div className="agri-card p-5 flex flex-col justify-between">
+        <div
+          onClick={() => onNavigateToTab('live')}
+          className="agri-card agri-card-interactive p-5 flex flex-col justify-between group"
+          title="Click to view Live Temperature Stream"
+        >
           <div>
             <div className="flex items-center justify-between text-xs text-ink-secondary mb-2">
-              <span className="font-medium flex items-center space-x-1.5">
-                <Thermometer className="w-4 h-4 text-primary-600" />
+              <span className="font-medium flex items-center space-x-1.5 group-hover:text-primary-700 transition-colors">
+                <Thermometer className="w-4 h-4 text-primary-600 transition-transform group-hover:scale-110" />
                 <span>Brood Temperature</span>
               </span>
               <span className="text-[11px] text-ink-muted">
-                Safe: {thresholds.minTemp}–{thresholds.maxTemp}°C
+                {thresholds.minTemp}–{thresholds.maxTemp}°C
               </span>
             </div>
 
-            <div className="flex items-baseline space-x-2 my-2">
-              <span className="text-3xl sm:text-4xl font-bold tracking-tight text-ink-primary">
-                {temp !== null ? temp.toFixed(1) : '--'}
-              </span>
-              <span className="text-lg font-medium text-ink-muted">°C</span>
+            <div className="flex items-baseline justify-between my-2">
+              <div className="flex items-baseline space-x-2">
+                <span className="text-3xl sm:text-4xl font-bold tracking-tight text-ink-primary">
+                  {temp !== null ? temp.toFixed(1) : '--'}
+                </span>
+                <span className="text-lg font-medium text-ink-muted">°C</span>
+              </div>
+              <Sparkline data={tempSparkSlice} color="#477A55" />
             </div>
           </div>
 
           <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between text-xs">
             <span
               className={`inline-flex items-center space-x-1 font-medium ${
-                tempStatus === 'normal'
-                  ? 'text-primary-700'
-                  : 'text-status-critical'
+                tempStatus === 'normal' ? 'text-primary-700' : 'text-status-critical'
               }`}
             >
               <span
@@ -268,32 +363,37 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
 
         {/* 2. Relative Humidity */}
-        <div className="agri-card p-5 flex flex-col justify-between">
+        <div
+          onClick={() => onNavigateToTab('live')}
+          className="agri-card agri-card-interactive p-5 flex flex-col justify-between group"
+          title="Click to view Live Humidity Stream"
+        >
           <div>
             <div className="flex items-center justify-between text-xs text-ink-secondary mb-2">
-              <span className="font-medium flex items-center space-x-1.5">
-                <Droplets className="w-4 h-4 text-honey-600" />
+              <span className="font-medium flex items-center space-x-1.5 group-hover:text-honey-700 transition-colors">
+                <Droplets className="w-4 h-4 text-honey-600 transition-transform group-hover:scale-110" />
                 <span>Relative Humidity</span>
               </span>
               <span className="text-[11px] text-ink-muted">
-                Safe: {thresholds.minHumidity}–{thresholds.maxHumidity}%
+                {thresholds.minHumidity}–{thresholds.maxHumidity}%
               </span>
             </div>
 
-            <div className="flex items-baseline space-x-2 my-2">
-              <span className="text-3xl sm:text-4xl font-bold tracking-tight text-ink-primary">
-                {humidity !== null ? humidity.toFixed(1) : '--'}
-              </span>
-              <span className="text-lg font-medium text-ink-muted">%</span>
+            <div className="flex items-baseline justify-between my-2">
+              <div className="flex items-baseline space-x-2">
+                <span className="text-3xl sm:text-4xl font-bold tracking-tight text-ink-primary">
+                  {humidity !== null ? humidity.toFixed(1) : '--'}
+                </span>
+                <span className="text-lg font-medium text-ink-muted">%</span>
+              </div>
+              <Sparkline data={humSparkSlice} color="#D99A35" />
             </div>
           </div>
 
           <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between text-xs">
             <span
               className={`inline-flex items-center space-x-1 font-medium ${
-                humStatus === 'normal'
-                  ? 'text-primary-700'
-                  : 'text-status-critical'
+                humStatus === 'normal' ? 'text-primary-700' : 'text-status-critical'
               }`}
             >
               <span
@@ -318,11 +418,15 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
 
         {/* 3. Sensor / Device Connection */}
-        <div className="agri-card p-5 flex flex-col justify-between">
+        <div
+          onClick={() => onNavigateToTab('devices')}
+          className="agri-card agri-card-interactive p-5 flex flex-col justify-between group"
+          title="Click to view Device Diagnostics"
+        >
           <div>
             <div className="flex items-center justify-between text-xs text-ink-secondary mb-2">
-              <span className="font-medium flex items-center space-x-1.5">
-                <Radio className="w-4 h-4 text-primary-600" />
+              <span className="font-medium flex items-center space-x-1.5 group-hover:text-primary-700 transition-colors">
+                <Radio className="w-4 h-4 text-primary-600 transition-transform group-hover:scale-110" />
                 <span>Sensor Node</span>
               </span>
               <span className="text-[11px] text-ink-muted font-mono">
@@ -334,7 +438,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               <div className="flex items-center space-x-2">
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    isOnline ? 'bg-primary-500' : isDelayed ? 'bg-status-warning' : 'bg-status-critical'
+                    isOnline ? 'bg-primary-500 animate-signal-pulse' : isDelayed ? 'bg-status-warning' : 'bg-status-critical'
                   }`}
                 />
                 <span className="text-2xl font-bold tracking-tight text-ink-primary">
@@ -361,15 +465,19 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
 
         {/* 4. Active Alerts & Condition Summary */}
-        <div className="agri-card p-5 flex flex-col justify-between">
+        <div
+          onClick={() => onNavigateToTab('alerts')}
+          className="agri-card agri-card-interactive p-5 flex flex-col justify-between group"
+          title="Click to view Alert Details"
+        >
           <div>
             <div className="flex items-center justify-between text-xs text-ink-secondary mb-2">
-              <span className="font-medium flex items-center space-x-1.5">
-                <AlertTriangle className={`w-4 h-4 ${activeAlertCount > 0 ? 'text-status-warning' : 'text-primary-600'}`} />
+              <span className="font-medium flex items-center space-x-1.5 group-hover:text-primary-700 transition-colors">
+                <AlertTriangle className={`w-4 h-4 ${activeAlertCount > 0 ? 'text-status-warning' : 'text-primary-600'} transition-transform group-hover:scale-110`} />
                 <span>Active Alerts</span>
               </span>
               <span className="text-[11px] font-medium text-primary-700">
-                {activeAlertCount === 0 ? 'All Clear' : `${activeAlertCount} Attention Needed`}
+                {activeAlertCount === 0 ? 'All Clear' : `${activeAlertCount} Attention`}
               </span>
             </div>
 
@@ -383,58 +491,113 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between text-xs">
-            <button
-              onClick={() => onNavigateToTab('alerts')}
-              className="text-primary-600 hover:text-primary-800 font-medium flex items-center space-x-1 transition-colors"
-            >
-              <span>View alert details</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+          <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between text-xs text-primary-700 font-medium">
+            <span>Review active events</span>
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
           </div>
         </div>
 
       </div>
 
-      {/* Unified Telemetry Trend Chart */}
-      <div className="agri-card p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-border-subtle gap-2">
+      {/* Main Row: Trajectory Chart (2/3) + Activity Timeline (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        
+        {/* Telemetry Trajectory Chart (2 cols) */}
+        <div className="lg:col-span-2 agri-card p-6 flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-ink-primary">
-              Recent Microclimate Telemetry
-            </h3>
-            <p className="text-xs text-ink-muted">
-              Continuous temperature and relative humidity recordings from the brood chamber
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-border-subtle gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-ink-primary">
+                  Microclimate Telemetry Trajectory
+                </h3>
+                <p className="text-xs text-ink-muted">
+                  Continuous temperature and relative humidity recordings from the brood chamber
+                </p>
+              </div>
+
+              <button
+                onClick={() => onNavigateToTab('analytics')}
+                className="text-xs font-medium text-primary-600 hover:text-primary-800 flex items-center space-x-1 self-start sm:self-auto group"
+              >
+                <span>Full historical analysis</span>
+                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+
+            <div className="h-72 w-full">
+              {history.length > 0 ? (
+                <ReactECharts
+                  option={overviewChartOption}
+                  style={{ height: '100%', width: '100%' }}
+                  notMerge={true}
+                  lazyUpdate={true}
+                />
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-xs text-ink-muted space-y-2.5">
+                  <div className="w-10 h-10 rounded-full bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-600">
+                    <Clock className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <span className="font-medium text-ink-secondary">Awaiting initial telemetry packets...</span>
+                  <span className="text-[11px] text-ink-muted">Connect your ESP32 or use Test Ingest above.</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Compact Recent Activity Timeline (1 col) */}
+        <div className="agri-card p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-border-subtle">
+              <div className="flex items-center space-x-2">
+                <Activity className="w-4 h-4 text-primary-600" />
+                <h3 className="text-sm font-semibold text-ink-primary">
+                  Recent Telemetry Events
+                </h3>
+              </div>
+              <span className="text-[11px] text-ink-muted">Real-time log</span>
+            </div>
+
+            <div className="space-y-3.5">
+              {recentEvents.length > 0 ? (
+                recentEvents.map((evt) => (
+                  <div key={evt.id} className="flex items-start space-x-3 text-xs">
+                    <span
+                      className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                        evt.type === 'success'
+                          ? 'bg-primary-500'
+                          : evt.type === 'warning'
+                          ? 'bg-status-warning'
+                          : 'bg-primary-400'
+                      }`}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-ink-primary">{evt.title}</span>
+                        <span className="text-[10px] text-ink-muted font-mono">{evt.time}</span>
+                      </div>
+                      <p className="text-[11px] text-ink-secondary mt-0.5 leading-relaxed">
+                        {evt.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-xs text-ink-muted">
+                  No events logged yet.
+                </div>
+              )}
+            </div>
           </div>
 
-          <button
-            onClick={() => onNavigateToTab('live')}
-            className="text-xs font-medium text-primary-600 hover:text-primary-800 flex items-center space-x-1 self-start sm:self-auto"
-          >
-            <span>Open live stream view</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="mt-4 pt-3 border-t border-border-subtle text-[11px] text-ink-muted flex items-center justify-between">
+            <span>Derivation: Verified backend packets</span>
+            <span className="text-primary-700 font-medium">Automatic sync</span>
+          </div>
         </div>
 
-        <div className="h-72 w-full">
-          {history.length > 0 ? (
-            <ReactECharts
-              option={overviewChartOption}
-              style={{ height: '100%', width: '100%' }}
-              notMerge={true}
-              lazyUpdate={true}
-            />
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-xs text-ink-muted space-y-2">
-              <Clock className="w-6 h-6 text-ink-faint animate-pulse" />
-              <span>Awaiting sensor telemetry from ESP32...</span>
-            </div>
-          )}
-        </div>
       </div>
 
     </div>
   );
 };
-

@@ -9,13 +9,13 @@ import { AnalyticsView } from '../components/AnalyticsView';
 import { AlertsView } from '../components/AlertsView';
 import { DeviceView } from '../components/DeviceView';
 import { SettingsView, DEFAULT_THRESHOLDS } from '../components/SettingsView';
+import { TestIngestModal } from '../components/TestIngestModal';
 import {
   fetchHealth,
   fetchLatestReading,
   fetchReadingsHistory,
   fetchDevices,
   fetchThresholdSettings,
-  postReading,
 } from '../lib/api';
 import {
   SensorReading,
@@ -30,6 +30,7 @@ export default function DashboardPage() {
   // Navigation State
   const [currentTab, setCurrentTab] = useState<NavTab>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
+  const [testModalOpen, setTestModalOpen] = useState<boolean>(false);
 
   // Telemetry & Device State
   const [latestReading, setLatestReading] = useState<SensorReading | null>(null);
@@ -43,7 +44,6 @@ export default function DashboardPage() {
   // Connection & Ingestion State
   const [backendConnected, setBackendConnected] = useState<boolean>(true);
   const [isPolling, setIsPolling] = useState<boolean>(true);
-  const [isTestIngesting, setIsTestIngesting] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [lastSyncDate, setLastSyncDate] = useState<Date | null>(null);
   const [secondsSinceLastPacket, setSecondsSinceLastPacket] = useState<number | null>(null);
@@ -140,28 +140,11 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, [latestReading]);
 
-  // 5. Test Ingestion Trigger (Hardware Pipeline Verification)
-  const handleTriggerTestIngest = async () => {
-    setIsTestIngesting(true);
-    try {
-      const simulatedTemp = +(34.4 + (Math.random() * 0.6 - 0.3)).toFixed(1);
-      const simulatedHum = +(62.0 + (Math.random() * 2.0 - 1.0)).toFixed(1);
-      const deviceId = selectedDeviceId || 'beehive-001';
-
-      await postReading({
-        device_id: deviceId,
-        temperature_c: simulatedTemp,
-        humidity_pct: simulatedHum,
-      });
-
-      setToastMessage(`Sample reading posted: ${simulatedTemp}°C, ${simulatedHum}% RH for ${deviceId}`);
-      await refreshTelemetry();
-    } catch (err: any) {
-      setToastMessage(`Ingestion failed: ${err.message}`);
-    } finally {
-      setIsTestIngesting(false);
-      setTimeout(() => setToastMessage(null), 4000);
-    }
+  // Toast feedback callback after test ingestion
+  const handleTestIngestSuccess = async (message: string) => {
+    setToastMessage(message);
+    await refreshTelemetry();
+    setTimeout(() => setToastMessage(null), 5000);
   };
 
   // Active Alerts count calculation
@@ -179,7 +162,7 @@ export default function DashboardPage() {
   const activeDevice = devices.find((d) => d.device_id === selectedDeviceId) || null;
 
   return (
-    <div className="min-h-screen bg-canvas text-ink-primary flex">
+    <div className="min-h-screen bg-canvas text-ink-primary flex honeycomb-pattern">
       
       {/* 1. Left Sidebar Navigation */}
       <Sidebar
@@ -193,7 +176,7 @@ export default function DashboardPage() {
         onClose={() => setMobileSidebarOpen(false)}
       />
 
-      {/* Main Content Area (offset by sidebar width on desktop) */}
+      {/* Main Content Area */}
       <div className="flex-1 md:pl-64 flex flex-col min-w-0">
         
         {/* 2. Clean Top Header */}
@@ -207,8 +190,8 @@ export default function DashboardPage() {
             lastSyncDate ? Math.floor((Date.now() - lastSyncDate.getTime()) / 1000) : null
           }
           onRefresh={refreshTelemetry}
-          onTriggerTestIngest={handleTriggerTestIngest}
-          isTestIngesting={isTestIngesting}
+          onTriggerTestIngest={() => setTestModalOpen(true)}
+          isTestIngesting={false}
           onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
         />
 
@@ -256,6 +239,7 @@ export default function DashboardPage() {
               secondsSinceLastReading={secondsSinceLastPacket}
               isPolling={isPolling}
               onRefresh={refreshTelemetry}
+              onOpenTestModal={() => setTestModalOpen(true)}
             />
           )}
 
@@ -308,6 +292,14 @@ export default function DashboardPage() {
         </footer>
 
       </div>
+
+      {/* Diagnostic Test Ingestion Modal */}
+      <TestIngestModal
+        isOpen={testModalOpen}
+        onClose={() => setTestModalOpen(false)}
+        selectedDeviceId={selectedDeviceId}
+        onSuccess={handleTestIngestSuccess}
+      />
 
     </div>
   );

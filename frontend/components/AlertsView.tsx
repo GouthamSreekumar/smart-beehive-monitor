@@ -9,6 +9,8 @@ import {
   CheckCircle2,
   Filter,
   Check,
+  ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 
 interface AlertsViewProps {
@@ -134,19 +136,6 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
       }
     }
 
-    // 5. Informational Alert if all nominal
-    if (list.length === 0 && latestReading) {
-      list.push({
-        id: 'system-nominal',
-        severity: 'info',
-        title: 'Nominal Operating Conditions',
-        description: `Microclimate readings (${latestReading.temperature_c.toFixed(1)}°C, ${latestReading.humidity_pct.toFixed(1)}% RH) are within configured safe bounds.`,
-        timestamp: latestReading.timestamp,
-        metric: 'temperature',
-        status: 'Active',
-      });
-    }
-
     return list;
   }, [backendConnected, secondsSinceLastReading, latestReading, thresholds, acknowledgedMap]);
 
@@ -164,7 +153,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-tab-enter">
       
       {/* Filters Strip */}
       <div className="agri-card p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -173,7 +162,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
         <div className="flex items-center space-x-2">
           <span className="text-xs font-semibold text-ink-primary">Severity:</span>
           <div className="flex items-center space-x-1 bg-canvas p-1 rounded-lg border border-border-light text-xs">
-            {(['all', 'critical', 'warning', 'info'] as const).map((sev) => (
+            {(['all', 'critical', 'warning'] as const).map((sev) => (
               <button
                 key={sev}
                 onClick={() => setSeverityFilter(sev)}
@@ -211,103 +200,111 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
 
       </div>
 
-      {/* Clean Alert Table */}
-      <div className="agri-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-canvas border-b border-border-light text-ink-muted font-medium">
-                <th className="py-3 px-4">Severity</th>
-                <th className="py-3 px-4">Alert Name</th>
-                <th className="py-3 px-4">Description</th>
-                <th className="py-3 px-4">Recorded Time</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-subtle">
-              {filteredAlerts.length > 0 ? (
-                filteredAlerts.map((alert) => (
-                  <tr
-                    key={alert.id}
-                    className={`hover:bg-canvas/40 transition-colors ${
-                      alert.status === 'Acknowledged' ? 'opacity-60' : 'opacity-100'
-                    }`}
-                  >
-                    {/* Severity Badge */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-medium border ${
-                          alert.severity === 'critical'
-                            ? 'bg-status-critical/10 border-status-critical/20 text-status-critical'
-                            : alert.severity === 'warning'
-                            ? 'bg-status-warning/10 border-status-warning/20 text-status-warning'
-                            : 'bg-primary-50 border-primary-200 text-primary-700'
-                        }`}
-                      >
+      {/* Clean Alert Table or Beautiful All-Clear Empty State */}
+      {alerts.length === 0 ? (
+        <div className="agri-card p-10 flex flex-col items-center justify-center text-center space-y-3">
+          <div className="w-14 h-14 rounded-full bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-600">
+            <ShieldCheck className="w-7 h-7" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-ink-primary">
+              All Clear — Brood Nest In Equilibrium
+            </h3>
+            <p className="text-xs text-ink-muted mt-1 max-w-md leading-relaxed">
+              No active alerts or biological threshold violations detected. Brood chamber temperature and relative humidity remain strictly within safe incubation boundaries.
+            </p>
+          </div>
+          <span className="text-[11px] font-semibold text-primary-700 bg-primary-50 px-3 py-1 rounded-full border border-primary-200">
+            Active Monitoring Active
+          </span>
+        </div>
+      ) : (
+        <div className="agri-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-canvas border-b border-border-light text-ink-muted font-medium">
+                  <th className="py-3 px-4">Severity</th>
+                  <th className="py-3 px-4">Alert Name</th>
+                  <th className="py-3 px-4">Description</th>
+                  <th className="py-3 px-4">Recorded Time</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
+                {filteredAlerts.length > 0 ? (
+                  filteredAlerts.map((alert) => (
+                    <tr
+                      key={alert.id}
+                      className={`hover:bg-canvas/40 transition-colors ${
+                        alert.status === 'Acknowledged' ? 'opacity-60' : 'opacity-100'
+                      }`}
+                    >
+                      {/* Severity Badge */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
+                          className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-medium border ${
                             alert.severity === 'critical'
-                              ? 'bg-status-critical'
-                              : alert.severity === 'warning'
-                              ? 'bg-status-warning'
-                              : 'bg-primary-500'
+                              ? 'bg-status-critical/10 border-status-critical/20 text-status-critical'
+                              : 'bg-status-warning/10 border-status-warning/20 text-status-warning'
                           }`}
-                        />
-                        <span className="capitalize">{alert.severity}</span>
-                      </span>
-                    </td>
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              alert.severity === 'critical' ? 'bg-status-critical' : 'bg-status-warning'
+                            }`}
+                          />
+                          <span className="capitalize">{alert.severity}</span>
+                        </span>
+                      </td>
 
-                    {/* Alert Name */}
-                    <td className="py-3.5 px-4 font-semibold text-ink-primary whitespace-nowrap">
-                      {alert.title}
-                    </td>
+                      {/* Alert Name */}
+                      <td className="py-3.5 px-4 font-semibold text-ink-primary whitespace-nowrap">
+                        {alert.title}
+                      </td>
 
-                    {/* Description */}
-                    <td className="py-3.5 px-4 text-ink-secondary max-w-md">
-                      {alert.description}
-                    </td>
+                      {/* Description */}
+                      <td className="py-3.5 px-4 text-ink-secondary max-w-md">
+                        {alert.description}
+                      </td>
 
-                    {/* Timestamp */}
-                    <td className="py-3.5 px-4 text-ink-muted whitespace-nowrap">
-                      {new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                    </td>
+                      {/* Timestamp */}
+                      <td className="py-3.5 px-4 text-ink-muted whitespace-nowrap">
+                        {new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </td>
 
-                    {/* Status */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className="text-ink-secondary font-medium">
-                        {alert.status}
-                      </span>
-                    </td>
+                      {/* Status */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className="text-ink-secondary font-medium">
+                          {alert.status}
+                        </span>
+                      </td>
 
-                    {/* Acknowledge Button */}
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      {alert.severity !== 'info' ? (
+                      {/* Acknowledge Button */}
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <button
                           onClick={() => toggleAcknowledge(alert.id)}
                           className="px-2.5 py-1 rounded-md text-[11px] font-medium border border-border-light hover:border-border-hover text-ink-secondary hover:text-ink-primary bg-surface transition-colors"
                         >
                           {alert.status === 'Acknowledged' ? 'Reset' : 'Acknowledge'}
                         </button>
-                      ) : (
-                        <span className="text-ink-muted text-[11px]">Nominal</span>
-                      )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-xs text-ink-muted">
+                      No alerts matching the selected filters.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-xs text-ink-muted">
-                    No alerts matching the selected filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   );
 };
-

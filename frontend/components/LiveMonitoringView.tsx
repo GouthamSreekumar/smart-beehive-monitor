@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { SensorReading, AlertThresholds, TimeRange } from '../lib/types';
+import { SensorReading, AlertThresholds } from '../lib/types';
 import {
   Activity,
   Thermometer,
@@ -12,6 +12,12 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
+  WifiOff,
+  Wifi,
+  Send,
+  HelpCircle,
+  Check,
+  ShieldAlert,
 } from 'lucide-react';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
@@ -24,6 +30,7 @@ interface LiveMonitoringViewProps {
   secondsSinceLastReading: number | null;
   isPolling: boolean;
   onRefresh: () => void;
+  onOpenTestModal: () => void;
 }
 
 export const LiveMonitoringView: React.FC<LiveMonitoringViewProps> = ({
@@ -34,8 +41,10 @@ export const LiveMonitoringView: React.FC<LiveMonitoringViewProps> = ({
   secondsSinceLastReading,
   isPolling,
   onRefresh,
+  onOpenTestModal,
 }) => {
   const [liveWindow, setLiveWindow] = useState<'30' | '60' | 'all'>('30');
+  const [showTroubleshooting, setShowTroubleshooting] = useState<boolean>(false);
 
   // Filter history to selected live slice
   const displaySlice = useMemo(() => {
@@ -76,7 +85,7 @@ export const LiveMonitoringView: React.FC<LiveMonitoringViewProps> = ({
         return `<div style="font-family: inherit;">
           <div style="font-size: 11px; color: #788579; margin-bottom: 2px;">${p.name}</div>
           <div style="font-weight: 600; color: #477A55;">Temperature: ${p.value} °C</div>
-          <div style="font-size: 11px; color: #788579; margin-top: 2px;">Safe: ${thresholds.minTemp}–${thresholds.maxTemp} °C</div>
+          <div style="font-size: 11px; color: #788579; margin-top: 2px;">Safe Band: ${thresholds.minTemp}–${thresholds.maxTemp} °C</div>
         </div>`;
       },
     },
@@ -131,7 +140,7 @@ export const LiveMonitoringView: React.FC<LiveMonitoringViewProps> = ({
     ],
   }), [timestamps, temperatures, thresholds, displaySlice.length]);
 
-  // Humidity chart option (Clean light styling)
+  // Humidity chart option
   const humChartOption = useMemo(() => ({
     animationDuration: 300,
     tooltip: {
@@ -148,7 +157,7 @@ export const LiveMonitoringView: React.FC<LiveMonitoringViewProps> = ({
         return `<div style="font-family: inherit;">
           <div style="font-size: 11px; color: #788579; margin-bottom: 2px;">${p.name}</div>
           <div style="font-weight: 600; color: #D99A35;">Humidity: ${p.value} % RH</div>
-          <div style="font-size: 11px; color: #788579; margin-top: 2px;">Safe: ${thresholds.minHumidity}–${thresholds.maxHumidity}%</div>
+          <div style="font-size: 11px; color: #788579; margin-top: 2px;">Safe Band: ${thresholds.minHumidity}–${thresholds.maxHumidity}%</div>
         </div>`;
       },
     },
@@ -204,77 +213,138 @@ export const LiveMonitoringView: React.FC<LiveMonitoringViewProps> = ({
   }), [timestamps, humidities, thresholds, displaySlice.length]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-tab-enter">
       
-      {/* Live Stream Header & Metric Strip */}
-      <div className="agri-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        
-        {/* Connection status & metadata */}
-        <div className="flex items-center space-x-3">
-          <div
-            className={`flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
-              isOnline
-                ? 'bg-primary-50 border-primary-200 text-primary-700'
-                : isStale
-                ? 'bg-status-warning/10 border-status-warning/20 text-status-warning'
-                : 'bg-status-critical/10 border-status-critical/20 text-status-critical'
-            }`}
-          >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isOnline ? 'bg-primary-500' : isStale ? 'bg-status-warning' : 'bg-status-critical'
+      {/* 1. Central Sensor Connection Status Panel */}
+      <div className="agri-card p-5 sm:p-6 bg-surface">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border-subtle">
+          
+          {/* Left: Device & Live Indicator */}
+          <div className="flex items-start sm:items-center space-x-3.5">
+            <div
+              className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 border transition-all ${
+                isOnline
+                  ? 'bg-primary-50 border-primary-200 text-primary-600'
+                  : isStale
+                  ? 'bg-status-warning/10 border-status-warning/20 text-status-warning'
+                  : 'bg-status-critical/10 border-status-critical/20 text-status-critical'
               }`}
-            />
-            <span>
-              {isOnline ? 'Live Stream Active' : isStale ? 'Telemetry Delayed' : 'Sensor Offline'}
+            >
+              {isOnline ? (
+                <Wifi className="w-5 h-5 animate-pulse" />
+              ) : (
+                <WifiOff className="w-5 h-5" />
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-sm sm:text-base font-bold text-ink-primary">
+                  {latestReading?.device_id || 'beehive-001'}
+                </h3>
+                <span
+                  className={`inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+                    isOnline
+                      ? 'bg-primary-50 border-primary-200 text-primary-700'
+                      : isStale
+                      ? 'bg-status-warning/10 border-status-warning/20 text-status-warning'
+                      : 'bg-status-critical/10 border-status-critical/20 text-status-critical'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isOnline ? 'bg-primary-500 animate-signal-pulse' : isStale ? 'bg-status-warning' : 'bg-status-critical'
+                    }`}
+                  />
+                  <span>
+                    {isOnline ? 'Online · Live Stream Active' : isStale ? 'Delayed · Signal Lag' : 'Offline · Sensor Disconnected'}
+                  </span>
+                </span>
+              </div>
+              <p className="text-xs text-ink-muted mt-0.5">
+                ESP32 Brood Chamber Transmitter · Expected Cadence: 3s
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Actions (Refresh, Test, Troubleshooting) */}
+          <div className="flex items-center space-x-2 self-start md:self-auto">
+            <button
+              onClick={onRefresh}
+              title="Refresh telemetry stream"
+              className="flex items-center space-x-1 px-3 py-1.5 rounded-lg border border-border-light hover:border-border-hover bg-surface hover:bg-canvas text-xs font-medium text-ink-secondary transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Sync</span>
+            </button>
+
+            <button
+              onClick={onOpenTestModal}
+              className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-honey-50 border border-honey-200 hover:bg-honey-100 text-xs font-medium text-honey-800 transition-colors"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Test Ingest</span>
+            </button>
+
+            <button
+              onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+              className="flex items-center space-x-1 px-3 py-1.5 rounded-lg border border-border-light hover:border-border-hover bg-surface hover:bg-canvas text-xs font-medium text-ink-muted transition-colors"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Guide</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Central Sensor Metrics Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 text-xs">
+          <div>
+            <span className="text-ink-muted block text-[11px]">Last Communication</span>
+            <span className="font-semibold text-ink-primary">
+              {latestReading ? new Date(latestReading.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'No packets'}
             </span>
           </div>
 
-          <span className="text-xs text-ink-muted">
-            Cadence: 3s · Node: {latestReading?.device_id || 'beehive-001'}
-          </span>
-        </div>
-
-        {/* Readout badges & live window filter */}
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-1 text-xs bg-canvas p-1 rounded-lg border border-border-light">
-            {(['30', '60', 'all'] as const).map((w) => (
-              <button
-                key={w}
-                onClick={() => setLiveWindow(w)}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                  liveWindow === w
-                    ? 'bg-surface text-ink-primary shadow-xs font-semibold'
-                    : 'text-ink-muted hover:text-ink-primary'
-                }`}
-              >
-                {w === 'all' ? 'All' : `Last ${w}`}
-              </button>
-            ))}
+          <div>
+            <span className="text-ink-muted block text-[11px]">Time Since Last Packet</span>
+            <span className={`font-semibold ${isOnline ? 'text-primary-700' : 'text-status-critical'}`}>
+              {secondsSinceLastReading !== null ? `${Math.round(secondsSinceLastReading)} seconds ago` : 'Never'}
+            </span>
           </div>
 
-          <button
-            onClick={onRefresh}
-            title="Refresh stream"
-            className="p-1.5 text-ink-muted hover:text-ink-primary rounded-lg hover:bg-canvas border border-border-light transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+          <div>
+            <span className="text-ink-muted block text-[11px]">Latest Brood Temperature</span>
+            <span className="font-semibold text-ink-primary">
+              {latestReading ? `${latestReading.temperature_c.toFixed(1)} °C` : '--'}
+            </span>
+          </div>
+
+          <div>
+            <span className="text-ink-muted block text-[11px]">Latest Relative Humidity</span>
+            <span className="font-semibold text-ink-primary">
+              {latestReading ? `${latestReading.humidity_pct.toFixed(1)} %` : '--'}
+            </span>
+          </div>
         </div>
+
+        {/* Expandable Troubleshooting Guidance */}
+        {showTroubleshooting && (
+          <div className="mt-4 p-4 rounded-lg bg-canvas border border-border-light text-xs text-ink-secondary space-y-2 animate-in fade-in duration-150">
+            <h4 className="font-bold text-ink-primary flex items-center space-x-1.5">
+              <ShieldAlert className="w-4 h-4 text-primary-600" />
+              <span>Sensor Connection & Troubleshooting Steps</span>
+            </h4>
+            <ul className="space-y-1.5 text-[11px] list-disc list-inside">
+              <li>Ensure the ESP32 is powered via USB (verify the red onboard power LED is steady).</li>
+              <li>Confirm your Wi-Fi hotspot is set to the <b>2.4 GHz band</b> (ESP32 does not support 5 GHz).</li>
+              <li>Inspect GPIO 4 pin connection to DHT22 data pin and confirm 3.3V power rails.</li>
+              <li>Click <b>Test Ingest</b> above to push a diagnostic packet and verify that FastAPI & PostgreSQL are operating normally.</li>
+            </ul>
+          </div>
+        )}
       </div>
 
-      {/* Offline Notice if applicable */}
-      {isOffline && (
-        <div className="p-4 rounded-lg bg-surface border border-border-light flex items-start space-x-3 text-xs text-ink-secondary">
-          <AlertCircle className="w-4 h-4 text-status-critical flex-shrink-0 mt-0.5" />
-          <div>
-            <span className="font-semibold text-ink-primary">Sensor signal absent: </span>
-            No telemetry packets received for {Math.round(secondsSinceLastReading || 0)}s. Please check ESP32 power and Wi-Fi connection. Charts will resume dynamically once telemetry resumes.
-          </div>
-        </div>
-      )}
-
-      {/* Dual Large Charts */}
+      {/* 2. Dual Real-Time Charts with Informative States */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         
         {/* Temperature Live Chart */}
@@ -283,13 +353,14 @@ export const LiveMonitoringView: React.FC<LiveMonitoringViewProps> = ({
             <div className="flex items-center space-x-2">
               <Thermometer className="w-4 h-4 text-primary-600" />
               <h3 className="text-sm font-semibold text-ink-primary">
-                Live Temperature (°C)
+                Live Brood Temperature
               </h3>
             </div>
+            
             <div className="flex items-center space-x-2 text-xs">
-              <span className="text-ink-muted">Latest:</span>
-              <span className="font-bold text-ink-primary">
-                {latestReading ? `${latestReading.temperature_c.toFixed(1)} °C` : '--'}
+              <span className="text-ink-muted">Safe:</span>
+              <span className="font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded border border-primary-200 text-[11px]">
+                {thresholds.minTemp}–{thresholds.maxTemp}°C
               </span>
             </div>
           </div>
@@ -303,9 +374,25 @@ export const LiveMonitoringView: React.FC<LiveMonitoringViewProps> = ({
                 lazyUpdate={true}
               />
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-xs text-ink-muted space-y-2">
-                <Clock className="w-6 h-6 text-ink-faint animate-pulse" />
-                <span>Waiting for initial ESP32 telemetry packet...</span>
+              /* Beautiful informative empty state */
+              <div className="h-full flex flex-col items-center justify-center p-6 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-primary-50 border border-primary-200 flex items-center justify-center text-primary-600">
+                  <Thermometer className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-ink-primary">
+                    Waiting for Sensor Telemetry
+                  </h4>
+                  <p className="text-[11px] text-ink-muted mt-1 max-w-xs">
+                    Live temperature data will display here automatically once the ESP32 transmitter connects.
+                  </p>
+                </div>
+                <button
+                  onClick={onOpenTestModal}
+                  className="px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200 rounded-lg transition-colors"
+                >
+                  Post Diagnostic Reading
+                </button>
               </div>
             )}
           </div>
@@ -317,13 +404,14 @@ export const LiveMonitoringView: React.FC<LiveMonitoringViewProps> = ({
             <div className="flex items-center space-x-2">
               <Droplets className="w-4 h-4 text-honey-600" />
               <h3 className="text-sm font-semibold text-ink-primary">
-                Live Relative Humidity (%)
+                Live Relative Humidity
               </h3>
             </div>
+            
             <div className="flex items-center space-x-2 text-xs">
-              <span className="text-ink-muted">Latest:</span>
-              <span className="font-bold text-ink-primary">
-                {latestReading ? `${latestReading.humidity_pct.toFixed(1)} %` : '--'}
+              <span className="text-ink-muted">Safe:</span>
+              <span className="font-semibold text-honey-700 bg-honey-50 px-2 py-0.5 rounded border border-honey-200 text-[11px]">
+                {thresholds.minHumidity}–{thresholds.maxHumidity}%
               </span>
             </div>
           </div>
@@ -337,9 +425,25 @@ export const LiveMonitoringView: React.FC<LiveMonitoringViewProps> = ({
                 lazyUpdate={true}
               />
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-xs text-ink-muted space-y-2">
-                <Clock className="w-6 h-6 text-ink-faint animate-pulse" />
-                <span>Waiting for initial ESP32 telemetry packet...</span>
+              /* Beautiful informative empty state */
+              <div className="h-full flex flex-col items-center justify-center p-6 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-honey-50 border border-honey-200 flex items-center justify-center text-honey-600">
+                  <Droplets className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-ink-primary">
+                    Waiting for Sensor Telemetry
+                  </h4>
+                  <p className="text-[11px] text-ink-muted mt-1 max-w-xs">
+                    Live relative humidity data will render dynamically once telemetry packets arrive.
+                  </p>
+                </div>
+                <button
+                  onClick={onOpenTestModal}
+                  className="px-3 py-1.5 text-xs font-medium text-honey-800 bg-honey-50 hover:bg-honey-100 border border-honey-200 rounded-lg transition-colors"
+                >
+                  Post Diagnostic Reading
+                </button>
               </div>
             )}
           </div>
@@ -350,4 +454,3 @@ export const LiveMonitoringView: React.FC<LiveMonitoringViewProps> = ({
     </div>
   );
 };
-

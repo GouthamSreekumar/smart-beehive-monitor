@@ -3,16 +3,13 @@
 import React from 'react';
 import { NavTab, Device } from '../lib/types';
 import {
-  Compass,
+  Activity,
   LineChart,
   Bell,
   Cpu,
   Sliders,
   RefreshCw,
   Send,
-  Radio,
-  Clock,
-  Sparkles,
 } from 'lucide-react';
 
 interface StudioHeaderProps {
@@ -45,11 +42,11 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   onOpenTestModal,
 }) => {
   const tabs: { id: NavTab; label: string; icon: React.ElementType }[] = [
-    { id: 'studio', label: 'Biome Studio', icon: Compass },
-    { id: 'stream', label: 'Telemetry Stream', icon: LineChart },
+    { id: 'overview', label: 'Environmental Overview', icon: Activity },
+    { id: 'stream', label: 'Historical Analytics', icon: LineChart },
     { id: 'alerts', label: 'Alerts Log', icon: Bell },
     { id: 'device', label: 'Hardware Fleet', icon: Cpu },
-    { id: 'settings', label: 'Incubation Limits', icon: Sliders },
+    { id: 'settings', label: 'Threshold Settings', icon: Sliders },
   ];
 
   const formatPacketAge = (sec: number | null, ts?: string | null) => {
@@ -68,7 +65,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
         {/* Brand & Identity */}
         <div className="flex items-center space-x-6">
           <div
-            onClick={() => onSelectTab('studio')}
+            onClick={() => onSelectTab('overview')}
             className="flex items-center space-x-3 cursor-pointer group"
           >
             <div className="w-9 h-9 rounded-xl bg-[#EDF5EF] border border-[#C6DACB] flex items-center justify-center text-[#2D5A3C] transition-transform group-hover:scale-105">
@@ -85,11 +82,11 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                   Smart Beehive
                 </span>
                 <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#EDF5EF] text-[#2D5A3C] border border-[#C6DACB]">
-                  Biome Studio
+                  IoT Telemetry
                 </span>
               </div>
               <p className="text-[11px] text-[#6E7F72]">
-                Brood Microclimate Observability
+                Microclimate Monitoring
               </p>
             </div>
           </div>
@@ -125,7 +122,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
         {/* Right Status Hub: Device State, API State, Actions */}
         <div className="flex items-center space-x-3">
           
-          {/* Node Connection Pill (Accurate Data State) */}
+          {/* Node Connection Pill */}
           <div
             className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium border ${
               nodeConnected
@@ -186,4 +183,3 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
     </header>
   );
 };
-

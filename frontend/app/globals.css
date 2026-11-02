@@ -45,14 +45,6 @@ body {
   box-shadow: 0 6px 20px -4px rgba(24, 38, 28, 0.06);
 }
 
-/* Bi-axial comfort matrix grid */
-.comfort-matrix {
-  position: relative;
-  background: linear-gradient(135deg, rgba(246, 248, 245, 0.8) 0%, rgba(255, 255, 255, 0.95) 100%);
-  border: 1px solid #E0E6DD;
-  border-radius: 0.875rem;
-  overflow: hidden;
-}
 
 /* Subtle beacon pulse */
 @keyframes beaconPing {

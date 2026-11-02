@@ -47,7 +47,7 @@ export interface HealthResponse {
 
 export type TimeRange = '1h' | '6h' | '24h' | '72h' | 'session';
 
-export type NavTab = 'studio' | 'stream' | 'alerts' | 'device' | 'settings';
+export type NavTab = 'overview' | 'stream' | 'alerts' | 'device' | 'settings';
 
 export interface TelemetryStats {
   tempMin: number | null;

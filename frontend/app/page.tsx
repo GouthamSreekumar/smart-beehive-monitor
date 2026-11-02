@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StudioHeader } from '../components/StudioHeader';
-import { BiomeStudioView } from '../components/BiomeStudioView';
+import { EnvironmentalOverview } from '../components/EnvironmentalOverview';
 import { TelemetryStreamView } from '../components/TelemetryStreamView';
 import { AlertsLogView } from '../components/AlertsLogView';
 import { HardwareFleetView } from '../components/HardwareFleetView';
@@ -25,7 +25,7 @@ import {
 import { CheckCircle2, X } from 'lucide-react';
 
 export default function DashboardPage() {
-  const [currentTab, setCurrentTab] = useState<NavTab>('studio');
+  const [currentTab, setCurrentTab] = useState<NavTab>('overview');
   const [testModalOpen, setTestModalOpen] = useState<boolean>(false);
 
   // Telemetry & Device State
@@ -179,9 +179,9 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Tab 1: Biome Studio (Asymmetric Hero Stage) */}
-        {currentTab === 'studio' && (
-          <BiomeStudioView
+        {/* Tab 1: Environmental Overview */}
+        {currentTab === 'overview' && (
+          <EnvironmentalOverview
             latestReading={latestReading}
             history={history}
             thresholds={thresholds}

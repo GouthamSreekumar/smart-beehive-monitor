@@ -100,7 +100,7 @@ export const IncubationSettingsView: React.FC<IncubationSettingsViewProps> = ({
           Brood Incubation Physiological Boundaries
         </h2>
         <p className="text-xs text-[#6E7F72] mt-1 leading-relaxed">
-          Define the safe microclimate corridor for worker bee larvae incubation. Readings outside these bounds automatically trigger biological alerts and adjust the Comfort Matrix.
+          Define the operating corridor for brood nest environmental thresholds. Readings outside these bounds automatically trigger alerts and update threshold markers across the monitoring overview.
         </p>
       </div>
 

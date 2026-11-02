@@ -3,61 +3,39 @@
 @tailwind utilities;
 
 :root {
-  --canvas-bg: #F9FAFB;
-  --card-bg: #FFFFFF;
-  --border-color: #E5E7EB;
-  --text-primary: #111827;
-  --text-secondary: #4B5563;
-  --text-muted: #6B7280;
-}
-
-html.dark {
-  --canvas-bg: #0B0F17;
-  --card-bg: #111827;
-  --border-color: #1F2937;
-  --text-primary: #F3F4F6;
-  --text-secondary: #9CA3AF;
-  --text-muted: #6B7280;
+  --background: #F7F9F6;
+  --surface: #FFFFFF;
+  --text-primary: #25352B;
+  --text-secondary: #5C6C5E;
+  --text-muted: #788579;
+  --border: #E5EAE3;
+  --primary: #477A55;
+  --honey: #D99A35;
 }
 
 body {
-  background-color: var(--canvas-bg);
+  background-color: var(--background);
   color: var(--text-primary);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Subtle Technical Grid Overlay for Industrial Feel */
-.industrial-grid {
-  background-size: 24px 24px;
-  background-image: 
-    linear-gradient(to right, rgba(31, 41, 55, 0.4) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(31, 41, 55, 0.4) 1px, transparent 1px);
+/* Clean, modern card style with soft border instead of heavy shadows */
+.agri-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(37, 53, 43, 0.03);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-html:not(.dark) .industrial-grid {
-  background-image: 
-    linear-gradient(to right, rgba(229, 231, 235, 0.7) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(229, 231, 235, 0.7) 1px, transparent 1px);
+.agri-card:hover {
+  border-color: #D4DDD1;
+  box-shadow: 0 3px 10px 0 rgba(37, 53, 43, 0.05);
 }
 
-/* Industrial Panel Card */
-.panel-card {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-html.dark .panel-card:hover {
-  border-color: #374151;
-}
-
-html:not(.dark) .panel-card:hover {
-  border-color: #D1D5DB;
-}
-
-/* Custom Industrial Scrollbar */
+/* Subtle, tasteful scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -65,17 +43,10 @@ html:not(.dark) .panel-card:hover {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-html.dark ::-webkit-scrollbar-thumb {
-  background: #1F2937;
-  border-radius: 4px;
+::-webkit-scrollbar-thumb {
+  background: #D4DDD1;
+  border-radius: 9999px;
 }
-html.dark ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
-}
-html:not(.dark) ::-webkit-scrollbar-thumb {
-  background: #E5E7EB;
-  border-radius: 4px;
-}
-html:not(.dark) ::-webkit-scrollbar-thumb:hover {
-  background: #D1D5DB;
+::-webkit-scrollbar-thumb:hover {
+  background: #A4B0A5;
 }

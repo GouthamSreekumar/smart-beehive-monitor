@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'class',
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,45 +8,59 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Deep Charcoal / Navy Industrial Palette
-        industrial: {
-          950: '#0B0F17', // Base workspace canvas
-          900: '#111827', // Card surface
-          850: '#161F30', // Elevated card surface
-          800: '#1F2937', // Card border / separator
-          700: '#374151', // Hover borders / subtle dividers
-          600: '#4B5563', // Secondary text
-          500: '#6B7280', // Muted text / icons
-          400: '#9CA3AF', // Body text (dark)
-          300: '#D1D5DB', // Headings (dark)
-          200: '#E5E7EB', // Card surface (light)
-          100: '#F3F4F6', // Secondary surface (light)
-          50: '#F9FAFB',  // Base canvas (light)
+        // Agricultural Light Theme Palette
+        canvas: '#F7F9F6',
+        surface: '#FFFFFF',
+        border: {
+          light: '#E5EAE3',
+          subtle: '#EEF2EC',
+          hover: '#D4DDD1',
         },
-        // Apiary Warm Amber / Honey-Gold Accents
+        primary: {
+          50: '#F2F7F3',
+          100: '#E1ECE3',
+          200: '#C2D9C7',
+          300: '#94BA9C',
+          400: '#689A72',
+          500: '#477A55', // Primary agricultural soft forest green
+          600: '#3A6445',
+          700: '#2F4F37',
+          800: '#273F2D',
+          900: '#203425',
+        },
         honey: {
-          50: '#FFFBEB',
-          100: '#FEF3C7',
-          200: '#FDE68A',
-          300: '#FCD34D',
-          400: '#FBBF24',
-          500: '#F59E0B', // Primary Brand Honey Gold
-          600: '#D97706', // Deep Warm Amber
-          700: '#B45309',
-          800: '#92400E',
-          900: '#78350F',
-          950: '#451A03',
+          50: '#FDF9F2',
+          100: '#FAF0DE',
+          200: '#F4E0BD',
+          300: '#EBCC94',
+          400: '#E2B467',
+          500: '#D99A35', // Secondary warm honey amber
+          600: '#BF8027',
+          700: '#98611E',
+          800: '#7B4E1D',
+          900: '#66411C',
         },
+        ink: {
+          primary: '#25352B',   // Dark charcoal for headings and primary text
+          secondary: '#5C6C5E', // Medium charcoal for secondary labels
+          muted: '#788579',     // Muted sage-grey for captions & timestamps
+          faint: '#A4B0A5',     // Very soft text for borders / disabled
+        },
+        status: {
+          success: '#477A55',
+          warning: '#E6A23C',
+          critical: '#D9534F',
+          info: '#3B82F6',
+        }
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['JetBrains Mono', 'Consolas', 'Menlo', 'monospace'],
       },
       boxShadow: {
-        'panel': '0 4px 20px -2px rgba(0, 0, 0, 0.45)',
-        'panel-light': '0 4px 16px -2px rgba(0, 0, 0, 0.05)',
-        'glow-amber': '0 0 15px -3px rgba(245, 158, 11, 0.35)',
-        'glow-emerald': '0 0 15px -3px rgba(16, 185, 129, 0.35)',
+        'card': '0 1px 3px 0 rgba(37, 53, 43, 0.04), 0 1px 2px -1px rgba(37, 53, 43, 0.02)',
+        'card-hover': '0 4px 12px 0 rgba(37, 53, 43, 0.06), 0 1px 3px -1px rgba(37, 53, 43, 0.04)',
+        'dropdown': '0 10px 25px -5px rgba(37, 53, 43, 0.08), 0 8px 10px -6px rgba(37, 53, 43, 0.04)',
       }
     },
   },

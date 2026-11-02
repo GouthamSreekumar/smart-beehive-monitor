@@ -29,13 +29,13 @@ export interface AlertItem {
   id: string;
   severity: AlertSeverity;
   title: string;
-  message: string;
+  description: string;
   timestamp: string;
   metric: 'temperature' | 'humidity' | 'connection';
   value?: number;
   threshold?: number;
   unit?: string;
-  suggestedAction?: string;
+  status: 'Active' | 'Acknowledged' | 'Resolved';
 }
 
 export interface HealthResponse {
@@ -49,8 +49,6 @@ export type TimeRange = '15m' | '1h' | '6h' | '24h' | 'all';
 
 export type NavTab = 'overview' | 'live' | 'analytics' | 'alerts' | 'devices' | 'settings';
 
-export type ThemeMode = 'dark' | 'light';
-
 export interface TelemetryStats {
   tempMin: number | null;
   tempMax: number | null;
@@ -59,5 +57,4 @@ export interface TelemetryStats {
   humidityMax: number | null;
   humidityAvg: number | null;
   sampleCount: number;
-  timeSpanMinutes: number;
 }

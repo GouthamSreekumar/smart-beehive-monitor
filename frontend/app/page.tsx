@@ -1,14 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Sidebar } from '../components/Sidebar';
-import { TopHeader } from '../components/TopHeader';
-import { OverviewView } from '../components/OverviewView';
-import { LiveMonitoringView } from '../components/LiveMonitoringView';
-import { AnalyticsView } from '../components/AnalyticsView';
-import { AlertsView } from '../components/AlertsView';
-import { DeviceView } from '../components/DeviceView';
-import { SettingsView, DEFAULT_THRESHOLDS } from '../components/SettingsView';
+import { StudioHeader } from '../components/StudioHeader';
+import { BiomeStudioView } from '../components/BiomeStudioView';
+import { TelemetryStreamView } from '../components/TelemetryStreamView';
+import { AlertsLogView } from '../components/AlertsLogView';
+import { HardwareFleetView } from '../components/HardwareFleetView';
+import { IncubationSettingsView, DEFAULT_THRESHOLDS } from '../components/IncubationSettingsView';
 import { TestIngestModal } from '../components/TestIngestModal';
 import {
   fetchHealth,
@@ -27,42 +25,36 @@ import {
 import { CheckCircle2, X } from 'lucide-react';
 
 export default function DashboardPage() {
-  // Navigation State
-  const [currentTab, setCurrentTab] = useState<NavTab>('overview');
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
+  const [currentTab, setCurrentTab] = useState<NavTab>('studio');
   const [testModalOpen, setTestModalOpen] = useState<boolean>(false);
 
   // Telemetry & Device State
   const [latestReading, setLatestReading] = useState<SensorReading | null>(null);
-  const [previousReading, setPreviousReading] = useState<SensorReading | null>(null);
   const [history, setHistory] = useState<SensorReading[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [thresholds, setThresholds] = useState<AlertThresholds>(DEFAULT_THRESHOLDS);
-  const [timeRange, setTimeRange] = useState<TimeRange>('1h');
+  // Default to 'session' (72h) so existing database history is rendered immediately
+  const [timeRange, setTimeRange] = useState<TimeRange>('session');
 
-  // Connection & Ingestion State
+  // Connection State
   const [backendConnected, setBackendConnected] = useState<boolean>(true);
   const [isPolling, setIsPolling] = useState<boolean>(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [lastSyncDate, setLastSyncDate] = useState<Date | null>(null);
   const [secondsSinceLastPacket, setSecondsSinceLastPacket] = useState<number | null>(null);
 
-  const latestReadingRef = useRef<SensorReading | null>(null);
-
-  // 1. Fetch Thresholds from FastAPI Backend (with fallback)
+  // 1. Fetch Thresholds
   useEffect(() => {
     async function loadThresholds() {
       try {
         const backendThresholds = await fetchThresholdSettings();
         setThresholds(backendThresholds);
       } catch (err) {
-        console.warn('Backend settings endpoint unreachable, falling back to local storage:', err);
         try {
           const saved = localStorage.getItem('beehive_thresholds');
           if (saved) setThresholds(JSON.parse(saved));
         } catch {
-          // Defaults remain
+          // Defaults
         }
       }
     }
@@ -76,33 +68,24 @@ export default function DashboardPage() {
     }
   };
 
-  // Convert TimeRange to Hours query parameter
   const getHoursForTimeRange = (range: TimeRange): number => {
     switch (range) {
-      case '15m': return 0.25;
       case '1h': return 1.0;
       case '6h': return 6.0;
       case '24h': return 24.0;
-      case 'all': return 720.0;
+      case '72h': return 72.0;
+      case 'session': return 72.0;
     }
   };
 
-  // 2. Central Telemetry Refresh Function
+  // 2. Refresh Telemetry Function
   const refreshTelemetry = useCallback(async () => {
     try {
       await fetchHealth();
       setBackendConnected(true);
 
       const latest = await fetchLatestReading(selectedDeviceId || undefined);
-      if (latest) {
-        if (latestReadingRef.current && latestReadingRef.current.id !== latest.id) {
-          setPreviousReading(latestReadingRef.current);
-        }
-        latestReadingRef.current = latest;
-        setLatestReading(latest);
-      } else {
-        setLatestReading(null);
-      }
+      setLatestReading(latest);
 
       const hours = getHoursForTimeRange(timeRange);
       const hist = await fetchReadingsHistory(selectedDeviceId || undefined, hours);
@@ -110,15 +93,13 @@ export default function DashboardPage() {
 
       const devs = await fetchDevices();
       setDevices(devs);
-
-      setLastSyncDate(new Date());
     } catch (err) {
-      console.warn('Telemetry sync error:', err);
+      console.warn('Backend sync failed:', err);
       setBackendConnected(false);
     }
   }, [selectedDeviceId, timeRange]);
 
-  // 3. Polling Lifecycle with automatic cleanup on unmount
+  // 3. Polling Lifecycle
   useEffect(() => {
     refreshTelemetry();
     if (!isPolling) return;
@@ -126,7 +107,7 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [isPolling, refreshTelemetry]);
 
-  // 4. Packet freshness timer
+  // 4. Exact Packet Freshness Timer
   useEffect(() => {
     const timer = setInterval(() => {
       if (latestReading?.timestamp) {
@@ -140,160 +121,132 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, [latestReading]);
 
-  // Toast feedback callback after test ingestion
-  const handleTestIngestSuccess = async (message: string) => {
-    setToastMessage(message);
-    await refreshTelemetry();
-    setTimeout(() => setToastMessage(null), 5000);
-  };
+  // Derived Node Connectivity (consistent source of truth)
+  const nodeConnected = backendConnected && latestReading !== null && secondsSinceLastPacket !== null && secondsSinceLastPacket <= 120;
 
   // Active Alerts count calculation
   const activeAlertCount = React.useMemo(() => {
     let count = 0;
     if (!backendConnected) count++;
-    if (secondsSinceLastPacket !== null && secondsSinceLastPacket > 120) count++;
+    if (!nodeConnected && secondsSinceLastPacket !== null && secondsSinceLastPacket > 120) count++;
     if (latestReading) {
       if (latestReading.temperature_c < thresholds.minTemp || latestReading.temperature_c > thresholds.maxTemp) count++;
       if (latestReading.humidity_pct < thresholds.minHumidity || latestReading.humidity_pct > thresholds.maxHumidity) count++;
     }
     return count;
-  }, [backendConnected, secondsSinceLastPacket, latestReading, thresholds]);
+  }, [backendConnected, nodeConnected, secondsSinceLastPacket, latestReading, thresholds]);
 
   const activeDevice = devices.find((d) => d.device_id === selectedDeviceId) || null;
 
+  const handleTestIngestSuccess = async (msg: string) => {
+    setToastMessage(msg);
+    await refreshTelemetry();
+    setTimeout(() => setToastMessage(null), 5000);
+  };
+
   return (
-    <div className="min-h-screen bg-canvas text-ink-primary flex honeycomb-pattern">
+    <div className="min-h-screen bg-[#F6F8F5] text-[#18261C] flex flex-col biome-canvas">
       
-      {/* 1. Left Sidebar Navigation */}
-      <Sidebar
+      {/* 1. Studio Header */}
+      <StudioHeader
         currentTab={currentTab}
         onSelectTab={setCurrentTab}
         devices={devices}
         selectedDeviceId={selectedDeviceId}
+        onSelectDevice={setSelectedDeviceId}
         backendConnected={backendConnected}
+        nodeConnected={nodeConnected}
+        secondsSinceLastPacket={secondsSinceLastPacket}
+        latestReadingTimestamp={latestReading?.timestamp}
         activeAlertCount={activeAlertCount}
-        isOpen={mobileSidebarOpen}
-        onClose={() => setMobileSidebarOpen(false)}
+        onRefresh={refreshTelemetry}
+        onOpenTestModal={() => setTestModalOpen(true)}
       />
 
-      {/* Main Content Area */}
-      <div className="flex-1 md:pl-64 flex flex-col min-w-0">
+      {/* 2. Workspace Body */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         
-        {/* 2. Clean Top Header */}
-        <TopHeader
-          currentTab={currentTab}
-          devices={devices}
-          selectedDeviceId={selectedDeviceId}
-          onSelectDevice={setSelectedDeviceId}
-          backendConnected={backendConnected}
-          lastSyncSecondsAgo={
-            lastSyncDate ? Math.floor((Date.now() - lastSyncDate.getTime()) / 1000) : null
-          }
-          onRefresh={refreshTelemetry}
-          onTriggerTestIngest={() => setTestModalOpen(true)}
-          isTestIngesting={false}
-          onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
-        />
-
-        {/* 3. Main Workspace Container */}
-        <main className="flex-1 p-5 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
-          
-          {/* Subtle Toast Feedback */}
-          {toastMessage && (
-            <div className="p-3.5 rounded-lg bg-surface border border-primary-200 text-primary-800 text-xs flex items-center justify-between shadow-sm animate-in fade-in duration-200">
-              <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 text-primary-600 flex-shrink-0" />
-                <span>{toastMessage}</span>
-              </div>
-              <button
-                onClick={() => setToastMessage(null)}
-                className="text-ink-muted hover:text-ink-primary p-0.5 ml-2"
-              >
-                <X className="w-4 h-4" />
-              </button>
+        {/* Toast Feedback */}
+        {toastMessage && (
+          <div className="p-4 rounded-xl bg-white border border-[#2D5A3C]/30 text-[#2D5A3C] text-xs font-semibold flex items-center justify-between shadow-sm animate-in fade-in duration-200">
+            <div className="flex items-center space-x-2">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>{toastMessage}</span>
             </div>
-          )}
+            <button onClick={() => setToastMessage(null)} className="text-[#6E7F72] hover:text-[#18261C]">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
-          {/* Tab 1: Overview */}
-          {currentTab === 'overview' && (
-            <OverviewView
-              latestReading={latestReading}
-              previousReading={previousReading}
-              history={history}
-              thresholds={thresholds}
-              activeDevice={activeDevice}
-              backendConnected={backendConnected}
-              secondsSinceLastPacket={secondsSinceLastPacket}
-              activeAlertCount={activeAlertCount}
-              onNavigateToTab={setCurrentTab}
-            />
-          )}
+        {/* Tab 1: Biome Studio (Asymmetric Hero Stage) */}
+        {currentTab === 'studio' && (
+          <BiomeStudioView
+            latestReading={latestReading}
+            history={history}
+            thresholds={thresholds}
+            activeDevice={activeDevice}
+            backendConnected={backendConnected}
+            nodeConnected={nodeConnected}
+            secondsSinceLastPacket={secondsSinceLastPacket}
+            timeRange={timeRange}
+            onSelectTimeRange={setTimeRange}
+            onNavigateToTab={setCurrentTab}
+            onOpenTestModal={() => setTestModalOpen(true)}
+          />
+        )}
 
-          {/* Tab 2: Live Monitoring */}
-          {currentTab === 'live' && (
-            <LiveMonitoringView
-              latestReading={latestReading}
-              history={history}
-              thresholds={thresholds}
-              backendConnected={backendConnected}
-              secondsSinceLastReading={secondsSinceLastPacket}
-              isPolling={isPolling}
-              onRefresh={refreshTelemetry}
-              onOpenTestModal={() => setTestModalOpen(true)}
-            />
-          )}
+        {/* Tab 2: Longitudinal Telemetry Stream */}
+        {currentTab === 'stream' && (
+          <TelemetryStreamView
+            history={history}
+            thresholds={thresholds}
+            timeRange={timeRange}
+            onSelectTimeRange={setTimeRange}
+          />
+        )}
 
-          {/* Tab 3: Historical Analytics */}
-          {currentTab === 'analytics' && (
-            <AnalyticsView
-              history={history}
-              thresholds={thresholds}
-              timeRange={timeRange}
-              onSelectTimeRange={setTimeRange}
-            />
-          )}
+        {/* Tab 3: Alerts Log */}
+        {currentTab === 'alerts' && (
+          <AlertsLogView
+            latestReading={latestReading}
+            thresholds={thresholds}
+            backendConnected={backendConnected}
+            nodeConnected={nodeConnected}
+            secondsSinceLastReading={secondsSinceLastPacket}
+          />
+        )}
 
-          {/* Tab 4: Alerts */}
-          {currentTab === 'alerts' && (
-            <AlertsView
-              latestReading={latestReading}
-              thresholds={thresholds}
-              backendConnected={backendConnected}
-              secondsSinceLastReading={secondsSinceLastPacket}
-            />
-          )}
+        {/* Tab 4: Hardware Fleet */}
+        {currentTab === 'device' && (
+          <HardwareFleetView
+            devices={devices}
+            selectedDeviceId={selectedDeviceId}
+            onSelectDevice={setSelectedDeviceId}
+            latestReading={latestReading}
+            secondsSinceLastPacket={secondsSinceLastPacket}
+            backendConnected={backendConnected}
+            nodeConnected={nodeConnected}
+          />
+        )}
 
-          {/* Tab 5: Device Management */}
-          {currentTab === 'devices' && (
-            <DeviceView
-              devices={devices}
-              selectedDeviceId={selectedDeviceId}
-              onSelectDevice={setSelectedDeviceId}
-              latestReading={latestReading}
-              secondsSinceLastPacket={secondsSinceLastPacket}
-              backendConnected={backendConnected}
-            />
-          )}
+        {/* Tab 5: Incubation Limits Settings */}
+        {currentTab === 'settings' && (
+          <IncubationSettingsView
+            currentThresholds={thresholds}
+            onThresholdsUpdated={handleThresholdsUpdated}
+          />
+        )}
 
-          {/* Tab 6: Settings */}
-          {currentTab === 'settings' && (
-            <SettingsView
-              currentThresholds={thresholds}
-              onThresholdsUpdated={handleThresholdsUpdated}
-            />
-          )}
+      </main>
 
-        </main>
+      {/* Footer */}
+      <footer className="border-t border-[#DFE5DC] bg-white py-4 px-6 text-xs text-[#6E7F72] text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto w-full">
+        <span>Smart Beehive Monitor · Agricultural Observability Platform</span>
+        <span>ESP32 + DHT22 · FastAPI · PostgreSQL · Next.js 14</span>
+      </footer>
 
-        {/* Clean Footer */}
-        <footer className="border-t border-border-light bg-surface py-4 px-5 sm:px-8 text-xs text-ink-muted flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Smart Beehive Monitor · Agricultural IoT Telemetry</span>
-          <span>ESP32 + DHT22 · FastAPI · PostgreSQL · Next.js 14</span>
-        </footer>
-
-      </div>
-
-      {/* Diagnostic Test Ingestion Modal */}
+      {/* Diagnostic Ingest Modal */}
       <TestIngestModal
         isOpen={testModalOpen}
         onClose={() => setTestModalOpen(false)}

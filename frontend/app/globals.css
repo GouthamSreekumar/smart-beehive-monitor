@@ -3,95 +3,82 @@
 @tailwind utilities;
 
 :root {
-  --background: #F7F9F6;
+  --canvas: #F6F8F5;
   --surface: #FFFFFF;
-  --text-primary: #25352B;
-  --text-secondary: #5C6C5E;
-  --text-muted: #788579;
-  --border: #E5EAE3;
-  --primary: #477A55;
-  --honey: #D99A35;
+  --ink-primary: #18261C;
+  --ink-secondary: #435447;
+  --ink-muted: #6E7F72;
+  --border-light: #E0E6DD;
+  --primary: #2D5A3C;
+  --honey: #D98A26;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--text-primary);
+  background-color: var(--canvas);
+  color: var(--ink-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Subtle, tasteful honeycomb pattern for backgrounds and cards */
-.honeycomb-pattern {
-  background-color: #F7F9F6;
+/* Subtle organic linen dot micro-pattern */
+.biome-canvas {
+  background-color: #F6F8F5;
   background-image: 
-    radial-gradient(#E5EAE3 0.75px, transparent 0.75px),
-    radial-gradient(#E5EAE3 0.75px, #F7F9F6 0.75px);
-  background-size: 28px 28px;
-  background-position: 0 0, 14px 14px;
+    radial-gradient(#DCE3D8 0.75px, transparent 0.75px),
+    radial-gradient(#DCE3D8 0.75px, #F6F8F5 0.75px);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
 }
 
-/* Clean, modern agricultural card with subtle elevation on hover */
-.agri-card {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgba(37, 53, 43, 0.03);
-  transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
-              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+/* Studio Stage Container */
+.studio-stage {
+  background-color: #FFFFFF;
+  border: 1px solid #DFE5DC;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px -2px rgba(24, 38, 28, 0.04), 0 1px 3px -1px rgba(24, 38, 28, 0.02);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.agri-card-interactive {
-  cursor: pointer;
+.studio-stage:hover {
+  border-color: #CBD5C7;
+  box-shadow: 0 6px 20px -4px rgba(24, 38, 28, 0.06);
 }
 
-.agri-card-interactive:hover {
-  border-color: #C2D9C7;
-  box-shadow: 0 6px 18px 0 rgba(37, 53, 43, 0.06);
-  transform: translateY(-1.5px);
+/* Bi-axial comfort matrix grid */
+.comfort-matrix {
+  position: relative;
+  background: linear-gradient(135deg, rgba(246, 248, 245, 0.8) 0%, rgba(255, 255, 255, 0.95) 100%);
+  border: 1px solid #E0E6DD;
+  border-radius: 0.875rem;
+  overflow: hidden;
 }
 
-/* Tasteful Bee Wing Flutter Animation */
-@keyframes wingFlutter {
-  0%, 100% {
-    transform: rotate(0deg) scale(1);
-  }
-  25% {
-    transform: rotate(-3deg) scale(1.02);
-  }
-  75% {
-    transform: rotate(3deg) scale(0.98);
-  }
-}
-
-.animate-wing-flutter {
-  animation: wingFlutter 4s ease-in-out infinite;
-  transform-origin: center;
-}
-
-/* Subtle gentle pulse for live status beacons */
-@keyframes signalPulse {
+/* Subtle beacon pulse */
+@keyframes beaconPing {
   0% {
-    box-shadow: 0 0 0 0 rgba(71, 122, 85, 0.4);
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(45, 90, 60, 0.4);
   }
   70% {
-    box-shadow: 0 0 0 6px rgba(71, 122, 85, 0);
+    transform: scale(1.05);
+    box-shadow: 0 0 0 8px rgba(45, 90, 60, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(71, 122, 85, 0);
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(45, 90, 60, 0);
   }
 }
 
-.animate-signal-pulse {
-  animation: signalPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.animate-beacon {
+  animation: beaconPing 2.8s ease-in-out infinite;
 }
 
-/* Gentle Tab View Fade & Slide Transition */
-@keyframes tabEnter {
+/* Tab view fade in */
+@keyframes stageFadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -99,11 +86,11 @@ body {
   }
 }
 
-.animate-tab-enter {
-  animation: tabEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-stage-enter {
+  animation: stageFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Tasteful, unobtrusive scrollbars */
+/* Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -112,21 +99,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D4DDD1;
+  background: #D0D8CD;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #A4B0A5;
-}
-
-/* Respect user's accessibility motion settings */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+  background: #A8B4A4;
 }

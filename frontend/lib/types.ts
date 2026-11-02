@@ -23,7 +23,7 @@ export interface AlertThresholds {
   maxHumidity: number;   // Default: 70.0 %
 }
 
-export type AlertSeverity = 'info' | 'warning' | 'critical';
+export type AlertSeverity = 'critical' | 'warning' | 'info';
 
 export interface AlertItem {
   id: string;
@@ -35,7 +35,7 @@ export interface AlertItem {
   value?: number;
   threshold?: number;
   unit?: string;
-  status: 'Active' | 'Acknowledged' | 'Resolved';
+  status: 'Active' | 'Acknowledged';
 }
 
 export interface HealthResponse {
@@ -45,9 +45,9 @@ export interface HealthResponse {
   version: string;
 }
 
-export type TimeRange = '15m' | '1h' | '6h' | '24h' | 'all';
+export type TimeRange = '1h' | '6h' | '24h' | '72h' | 'session';
 
-export type NavTab = 'overview' | 'live' | 'analytics' | 'alerts' | 'devices' | 'settings';
+export type NavTab = 'studio' | 'stream' | 'alerts' | 'device' | 'settings';
 
 export interface TelemetryStats {
   tempMin: number | null;
@@ -57,4 +57,5 @@ export interface TelemetryStats {
   humidityMax: number | null;
   humidityAvg: number | null;
   sampleCount: number;
+  latestTimestamp?: string | null;
 }

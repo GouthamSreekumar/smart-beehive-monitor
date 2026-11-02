@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="honeyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F7B733" />
+      <stop offset="50%" stop-color="#E5941E" />
+      <stop offset="100%" stop-color="#C77812" />
+    </linearGradient>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1B3826" />
+      <stop offset="100%" stop-color="#112418" />
+    </linearGradient>
+    <filter id="subtleShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#000" flood-opacity="0.18" />
+    </filter>
+  </defs>
+
+  <!-- Hexagonal Honeycomb Cell -->
+  <polygon points="32,3.5 57,17.9 57,46.1 32,60.5 7,46.1 7,17.9"
+           fill="url(#honeyGrad)" 
+           stroke="#21422C" 
+           stroke-width="2.75" 
+           stroke-linejoin="round" />
+
+  <!-- Inner Hexagon Accent Ring -->
+  <polygon points="32,6.5 54,19.2 54,44.8 32,57.5 10,44.8 10,19.2"
+           fill="none" 
+           stroke="#FDE6B0" 
+           stroke-width="1.2" 
+           stroke-opacity="0.65" 
+           stroke-linejoin="round" />
+
+  <g filter="url(#subtleShadow)">
+    <!-- Wings (Left & Right) in crisp white with soft forest tint -->
+    <!-- Left Wing -->
+    <path d="M 30,26 C 21,14 12,18 17,29 C 20,35 27,33 30,30 Z" 
+          fill="#FFFFFF" 
+          fill-opacity="0.95" 
+          stroke="#21422C" 
+          stroke-width="1.2" 
+          stroke-linejoin="round" />
+    <!-- Right Wing -->
+    <path d="M 34,26 C 43,14 52,18 47,29 C 44,35 37,33 34,30 Z" 
+          fill="#FFFFFF" 
+          fill-opacity="0.95" 
+          stroke="#21422C" 
+          stroke-width="1.2" 
+          stroke-linejoin="round" />
+
+    <!-- Bee Head -->
+    <circle cx="32" cy="18" r="5" fill="url(#bodyGrad)" stroke="#112418" stroke-width="0.8" />
+    <!-- Antennae -->
+    <path d="M 30,14 Q 28,10 26,11 M 34,14 Q 36,10 38,11" 
+          fill="none" 
+          stroke="#1B3826" 
+          stroke-width="1.5" 
+          stroke-linecap="round" />
+
+    <!-- Bee Thorax -->
+    <ellipse cx="32" cy="27" rx="6" ry="5.5" fill="url(#bodyGrad)" stroke="#112418" stroke-width="0.8" />
+
+    <!-- Bee Abdomen with Honey-Gold Stripes -->
+    <!-- Base Abdomen Shell -->
+    <path d="M 27,32 C 27,44 32,51 32,51 C 32,51 37,44 37,32 Z" 
+          fill="url(#bodyGrad)" 
+          stroke="#112418" 
+          stroke-width="0.8" 
+          stroke-linejoin="round" />
+
+    <!-- Golden Stripe 1 -->
+    <path d="M 27.5,35 Q 32,37.5 36.5,35" 
+          fill="none" 
+          stroke="#F8C245" 
+          stroke-width="2.4" 
+          stroke-linecap="round" />
+    <!-- Golden Stripe 2 -->
+    <path d="M 28.5,40 Q 32,42.5 35.5,40" 
+          fill="none" 
+          stroke="#F8C245" 
+          stroke-width="2.2" 
+          stroke-linecap="round" />
+    <!-- Golden Stripe 3 -->
+    <path d="M 30,45 Q 32,47 34,45" 
+          fill="none" 
+          stroke="#F8C245" 
+          stroke-width="1.8" 
+          stroke-linecap="round" />
+  </g>
+</svg>
